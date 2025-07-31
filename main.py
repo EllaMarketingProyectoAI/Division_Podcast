@@ -1,67 +1,44 @@
 from flask import Flask, request, jsonify
-import os, uuid, tempfile, requests
+import os, tempfile, uuid
 from moviepy.editor import VideoFileClip
 from supabase import create_client
 from dotenv import load_dotenv
 
 load_dotenv()
-
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 BUCKET_NAME = os.getenv("BUCKET_NAME", "videospodcast")
-
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 app = Flask(__name__)
 
-# Health check endpoint
-@app.route("/", methods=["GET"])
-def health_check():
-    return "✅ Server is running", 200
-
-# Video processing endpoint
-@app.route("/", methods=["POST"])
-def dividir_podcast():
+@app.route("/upload", methods=["POST"])
+def subir_y_dividir():
     try:
-        data = request.get_json(force=True)
-        user_id = data.get("user_id")
-        video_url = data.get("url_video")
-        supabase_file_name = data.get("supabaseFileName")
+        print("✅ POST recibido")
+        if 'video' not in request.files:
+            return jsonify({"status": "error", "message": "No se recibió archivo 'video'"}), 400
 
-        if not user_id or not video_url or not supabase_file_name:
-            return jsonify({"status": "error", "message": "Missing required fields"}), 400
-
-        print(f"✅ Iniciando procesamiento para: {video_url}")
-
-        try:
-            print("📥 Descargando video...")
-            response = requests.get(video_url, stream=True, timeout=120)
-            response.raise_for_status()
-        except Exception as e:
-            print(f"❌ Error al descargar el video: {e}")
-            return jsonify({"status": "error", "message": f"Descarga fallida: {str(e)}"}), 500
+        video_file = request.files['video']
+        print(f"📥 Nombre recibido: {video_file.filename}")
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
-            for chunk in response.iter_content(chunk_size=8192):
-                tmp.write(chunk)
+            video_file.save(tmp.name)
             temp_video_path = tmp.name
 
-        print("🎬 Cargando video con MoviePy...")
+        print("🎬 Abriendo video con MoviePy...")
         video = VideoFileClip(temp_video_path)
-
-        segment_duration = 600
         duration = video.duration
+        segment_duration = 600
         output_dir = tempfile.mkdtemp()
         urls_clips = []
-
-        print(f"🕒 Duración total: {duration} segundos")
 
         for i, start in enumerate(range(0, int(duration), segment_duration)):
             end = min(start + segment_duration, duration)
             clip = video.subclip(start, end)
             output_filename = f"{uuid.uuid4()}_clip_{i+1}.mp4"
             output_path = os.path.join(output_dir, output_filename)
+            print(f"✂️ Clip {i+1}: {start}-{end}")
 
-            print(f"✂️ Escribiendo clip {i+1}: {start}-{end} s")
             clip.write_videofile(
                 output_path,
                 codec="libx264",
@@ -70,23 +47,20 @@ def dividir_podcast():
                 preset="ultrafast"
             )
 
+            # Subir a Supabase
             with open(output_path, "rb") as f:
                 supabase.storage.from_(BUCKET_NAME).upload(
-                    f"clips/{user_id}/{output_filename}",
+                    f"clips/temp/{output_filename}",
                     f,
                     {"content-type": "video/mp4"},
                     upsert=True
                 )
 
-            public_url = f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET_NAME}/clips/{user_id}/{output_filename}"
+            public_url = f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET_NAME}/clips/temp/{output_filename}"
             urls_clips.append(public_url)
-            print(f"📤 Clip {i+1} subido: {public_url}")
 
         return jsonify({"status": "success", "clips": urls_clips}), 200
 
     except Exception as e:
-        print(f"❌ Error general: {str(e)}")
+        print("❌ Error:", e)
         return jsonify({"status": "error", "message": str(e)}), 500
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000)
