@@ -1,3 +1,4 @@
+CMD ["gunicorn", "main:app", "--bind", "0.0.0.0:8000"]
 FROM python:3.12-slim
 
 # Instalar dependencias del sistema
