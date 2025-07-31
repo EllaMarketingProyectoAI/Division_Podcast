@@ -4,6 +4,9 @@ import uuid
 from ffmpeg_split import dividir_video_en_segmentos
 from supabase_upload import upload_clip_to_supabase
 
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8000)
+
 app = Flask(__name__)
 
 @app.route("/", methods=["GET"])
