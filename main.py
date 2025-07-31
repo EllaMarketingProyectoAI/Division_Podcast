@@ -11,8 +11,12 @@ BUCKET_NAME = os.getenv("BUCKET_NAME", "videospodcast")
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 app = Flask(__name__)
 
-@app.route("/upload", methods=["POST"])
-def subir_y_dividir():
+@app.route("/", methods=["POST"])
+def dividir_video():
+    data = request.get_json(force=True)
+    print(data)  # Esto ayuda a ver si llega bien el body
+
+    return jsonify({"status": "ok", "message": "recibido"}), 200
     try:
         print("✅ POST recibido")
         if 'video' not in request.files:
