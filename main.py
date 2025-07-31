@@ -10,6 +10,9 @@ app = Flask(__name__)
 def home():
     return {"status": "ok", "message": "Servidor funcionando en Railway ✅"}
 
+@app.route("/")
+def health():
+    return "OK", 200
 
 @app.route("/", methods=["POST"])
 def dividir_podcast():
