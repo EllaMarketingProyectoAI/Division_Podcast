@@ -1,6 +1,6 @@
 flask
+gunicorn
 moviepy
 python-dotenv
-gunicorn
 supabase
 imageio-ffmpeg
