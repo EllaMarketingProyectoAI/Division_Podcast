@@ -3,4 +3,4 @@ gunicorn
 python-dotenv
 supabase
 moviepy
-imageio_ffmpeg
+imageio-ffmpeg
