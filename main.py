@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import os
 import uuid
 from ffmpeg_split import dividir_video_en_segmentos
-from supabase_upload import subir_a_supabase
+from supabase_upload import upload_clip_to_supabase
 
 app = Flask(__name__)
 
@@ -17,25 +17,27 @@ def dividir_podcast():
         if not user_id or not url_video or not supabase_file_name:
             return jsonify({"status": "error", "message": "Missing fields"}), 400
 
-        # 1. Descargar el video
-        local_filename = f"/tmp/{uuid.uuid4()}.mp4"
-        os.system(f"wget '{url_video}' -O {local_filename}")
+        # Descargar el video temporalmente
+        local_video_path = f"/tmp/{supabase_file_name}"
+        os.system(f"wget '{url_video}' -O {local_video_path}")
 
-        # 2. Dividir el video
-        output_dir = f"/tmp/{uuid.uuid4()}"
-        os.makedirs(output_dir, exist_ok=True)
-        partes = dividir_video_en_segmentos(local_filename, output_dir)
+        # Crear carpeta temporal para los clips
+        clips_dir = f"/tmp/clips_{uuid.uuid4()}"
+        os.makedirs(clips_dir, exist_ok=True)
 
-        # 3. Subir a Supabase
+        # Dividir video
+        clips = dividir_video_en_segmentos(local_video_path, clips_dir)
+
+        # Subir a Supabase
         urls = []
-        for parte in partes:
-            url = subir_a_supabase(parte, user_id)
-            urls.append(url)
+        for clip in clips:
+            upload_clip_to_supabase(clip, user_id, supabase_file_name)
+            urls.append(clip)
 
         return jsonify({
             "status": "success",
-            "clips_uploaded": len(urls),
-            "clip_urls": urls
+            "message": f"{len(urls)} clips created and uploaded",
+            "clips": urls
         }), 200
 
     except Exception as e:
