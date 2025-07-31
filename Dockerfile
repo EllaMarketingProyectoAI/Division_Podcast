@@ -1,21 +1,23 @@
-# Instalar dependencias del sistema
+# 1. Imagen base
+FROM python:3.12-slim
+
+# 2. Establecer directorio de trabajo
+WORKDIR /app
+
+# 3. Instalar dependencias del sistema (como ffmpeg y wget)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     wget \
     && apt-get clean
 
-# Crear carpeta de trabajo
-WORKDIR /app
-
-# Copiar archivos del proyecto
+# 4. Copiar archivos del proyecto
 COPY . .
 
-# Instalar dependencias Python
+# 5. Instalar dependencias de Python
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Puerto para Gunicorn
+# 6. Exponer puerto (opcional, pero recomendado)
 EXPOSE 8000
 
-# Comando de inicio
+# 7. Comando de arranque
 CMD ["gunicorn", "main:app", "--bind", "0.0.0.0:8000"]
-FROM python:3.12-slim
