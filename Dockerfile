@@ -10,11 +10,11 @@ RUN apt-get update && apt-get install -y \
     wget \
     && apt-get clean
 
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
 # 4. Copiar archivos del proyecto
 COPY . .
-
-# 5. Instalar dependencias de Python
-RUN pip install --no-cache-dir -r requirements.txt
 
 # 6. Exponer puerto (opcional, pero recomendado)
 EXPOSE 8000
