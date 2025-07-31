@@ -1,11 +1,11 @@
 import subprocess
 import os
 from moviepy.editor import VideoFileClip
-
 # Verifica si ffmpeg está disponible
 import imageio
-print("🔧 FFMPEG path:", imageio.plugins.ffmpeg.download())
 
+
+print("🔧 FFMPEG binary path:", imageio_ffmpeg.get_ffmpeg_exe())
 
 def split_video_into_clips(video_path, duracion_segmento=600):  # 600 seg = 10 min
     nombre_base = os.path.splitext(os.path.basename(video_path))[0]
