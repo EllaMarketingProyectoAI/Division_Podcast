@@ -13,10 +13,12 @@ BUCKET_NAME = os.getenv("BUCKET_NAME", "videospodcast")
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 app = Flask(__name__)
 
+# Health check endpoint
 @app.route("/", methods=["GET"])
 def health_check():
     return "✅ Server is running", 200
 
+# Video processing endpoint
 @app.route("/", methods=["POST"])
 def dividir_podcast():
     try:
@@ -30,8 +32,13 @@ def dividir_podcast():
 
         print(f"✅ Iniciando procesamiento para: {video_url}")
 
-        response = requests.get(video_url, stream=True, timeout=30)
-        response.raise_for_status()
+        try:
+            print("📥 Descargando video...")
+            response = requests.get(video_url, stream=True, timeout=120)
+            response.raise_for_status()
+        except Exception as e:
+            print(f"❌ Error al descargar el video: {e}")
+            return jsonify({"status": "error", "message": f"Descarga fallida: {str(e)}"}), 500
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
             for chunk in response.iter_content(chunk_size=8192):
@@ -40,6 +47,7 @@ def dividir_podcast():
 
         print("🎬 Cargando video con MoviePy...")
         video = VideoFileClip(temp_video_path)
+
         segment_duration = 600
         duration = video.duration
         output_dir = tempfile.mkdtemp()
@@ -77,7 +85,7 @@ def dividir_podcast():
         return jsonify({"status": "success", "clips": urls_clips}), 200
 
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"❌ Error general: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == "__main__":
