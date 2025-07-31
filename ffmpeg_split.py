@@ -1,25 +1,32 @@
+import subprocess
 import os
-from supabase import create_client
-from dotenv import load_dotenv
+import imageio_ffmpeg
 
-load_dotenv()
+# Verifica si ffmpeg está disponible
+ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+print(f"🔧 FFMPEG path: {ffmpeg_path}")
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+def dividir_video_en_segmentos(video_path, output_dir, duracion_segmento=600):
+    nombre_base = os.path.splitext(os.path.basename(video_path))[0]
 
-if not SUPABASE_URL or not SUPABASE_KEY:
-    raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set")
+    output_pattern = os.path.join(output_dir, f"{nombre_base}_%03d.mp4")
 
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-BUCKET_NAME = "videospodcast"
+    comando = [
+        "ffmpeg",
+        "-i", video_path,
+        "-c", "copy",
+        "-map", "0",
+        "-segment_time", str(duracion_segmento),
+        "-f", "segment",
+        "-reset_timestamps", "1",
+        output_pattern
+    ]
 
-def upload_clip_to_supabase(filepath, user_id, video_id):
-    filename = os.path.basename(filepath)
-    storage_path = f"ClipsPodcast/{user_id}/{video_id}/{filename}"
+    subprocess.run(comando, check=True)
 
-    with open(filepath, "rb") as f:
-        supabase.storage.from_(BUCKET_NAME).upload(storage_path, f)
-
-    public_url = supabase.storage.from_(BUCKET_NAME).get_public_url(storage_path)
-    print(f"✅ Subido: {storage_path} → {public_url}")
-    return public_url
+    # Lista de rutas generadas
+    return [
+        os.path.join(output_dir, f)
+        for f in sorted(os.listdir(output_dir))
+        if f.startswith(nombre_base) and f.endswith(".mp4")
+    ]
