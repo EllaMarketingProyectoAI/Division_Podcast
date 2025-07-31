@@ -20,4 +20,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE 8000
 
 # 7. Comando de arranque
-CMD ["gunicorn", "main.py:app", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "main:app", "--bind", "0.0.0.0:8000"]
