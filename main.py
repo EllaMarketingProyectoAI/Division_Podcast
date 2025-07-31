@@ -13,6 +13,10 @@ BUCKET_NAME = os.getenv("BUCKET_NAME", "videospodcast")
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 app = Flask(__name__)
 
+@app.route("/", methods=["GET"])
+def health_check():
+    return "✅ Server is running", 200
+
 @app.route("/", methods=["POST"])
 def dividir_podcast():
     try:
