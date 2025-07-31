@@ -6,6 +6,11 @@ from supabase_upload import upload_clip_to_supabase
 
 app = Flask(__name__)
 
+@app.route("/", methods=["GET"])
+def home():
+    return {"status": "ok", "message": "Servidor funcionando en Railway ✅"}
+
+
 @app.route("/", methods=["POST"])
 def dividir_podcast():
     try:
