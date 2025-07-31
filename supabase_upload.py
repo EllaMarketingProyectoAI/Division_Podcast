@@ -7,21 +7,19 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-# Ensure that environment variables are not None
-if SUPABASE_URL is None or SUPABASE_KEY is None:
+if not SUPABASE_URL or not SUPABASE_KEY:
     raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set")
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+BUCKET_NAME = "videospodcast"
 
 def upload_clip_to_supabase(filepath, user_id, video_id):
-    nombre = os.path.basename(filepath)
-
-    ruta_final = f"ClipsPodcast/{user_id}/{video_id}/{nombre}"
+    filename = os.path.basename(filepath)
+    storage_path = f"ClipsPodcast/{user_id}/{video_id}/{filename}"
 
     with open(filepath, "rb") as f:
-        supabase.storage.from_("videospodcast").upload(ruta_final, f)
+        supabase.storage.from_(BUCKET_NAME).upload(storage_path, f)
 
-    print(f"✅ Subido: {ruta_final}")
-
+    public_url = supabase.storage.from_(BUCKET_NAME).get_public_url(storage_path)
+    print(f"✅ Subido: {storage_path} → {public_url}")
+    return public_url
