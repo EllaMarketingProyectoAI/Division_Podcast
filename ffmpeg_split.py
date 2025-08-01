@@ -1,47 +1,32 @@
 import os
-import math
+import uuid
 import subprocess
-from moviepy.editor import VideoFileClip
 
-def dividir_video(input_path, output_dir, base_filename, segmento_duracion=600):
-    try:
-        video = VideoFileClip(input_path)
-        duracion_total = video.duration
-        video.close()
-    except Exception as e:
-        print(f"[❌] Error al cargar el video: {e}")
-        return []
+def dividir_video_en_segmentos(input_path, output_dir, base_output_name, duracion_segmento=600):
+    output_paths = []
 
-    total_segmentos = math.ceil(duracion_total / segmento_duracion)
-    urls = []
+    comando_duracion = [
+        "ffprobe", "-v", "error", "-show_entries", "format=duration",
+        "-of", "default=noprint_wrappers=1:nokey=1", input_path
+    ]
+    resultado = subprocess.run(comando_duracion, capture_output=True, text=True)
+    duracion_total = float(resultado.stdout.strip())
 
-    for i in range(total_segmentos):
-        inicio = i * segmento_duracion
-        duracion_clip = min(segmento_duracion, duracion_total - inicio)
+    inicio = 0
+    index = 1
 
-        # Evita generar clips menores a 1 segundo (podrían estar corruptos)
-        if duracion_clip < 1:
-            print(f"[⚠️] Clip {i + 1} ignorado por ser muy corto ({duracion_clip}s)")
-            continue
-
-        output_filename = f"{base_filename}_clip{i+1}.mp4"
-        output_path = os.path.join(output_dir, output_filename)
-
+    while inicio < duracion_total:
+        salida_clip = os.path.join(output_dir, f"{base_output_name}_clip{index}.mp4")
         comando = [
             "ffmpeg", "-ss", str(inicio), "-i", input_path,
-            "-t", str(duracion_clip),
-            "-vf", "scale=1280:720",              # ⚠️ Baja resolución
-            "-c:v", "libx264", "-preset", "ultrafast",
+            "-t", str(duracion_segmento),
+            "-c:v", "libx264", "-preset", "veryfast",
             "-c:a", "aac", "-b:a", "128k",
-            output_path, "-y"
+            salida_clip, "-y"
         ]
+        subprocess.run(comando, check=True)
+        output_paths.append(salida_clip)
+        inicio += duracion_segmento
+        index += 1
 
-        try:
-            subprocess.run(comando, check=True)
-            print(f"[✅] Clip generado: {output_filename}")
-            urls.append(output_path)
-        except subprocess.CalledProcessError as e:
-            print(f"[❌] Error generando el clip {i + 1}: {e}")
-            continue
-
-    return urls
+    return output_paths
