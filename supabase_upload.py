@@ -23,6 +23,14 @@ def procesar_video_y_subir(user_id, url_video, supabase_file_name):
 
     uploaded_urls = []
 
+    try:
+        response = requests.get(url_video, stream=True)
+        response.raise_for_status()  # Esto lanza un error si status != 200
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Error al descargar el video: {e}")
+        return "Error al descargar el video"
+
+    
     for clip_path in clips:
         file_name = os.path.basename(clip_path)
         storage_path = f"{user_id}/{file_name}"
