@@ -1,32 +1,29 @@
-import subprocess
 import os
-import imageio_ffmpeg
+import uuid
+import subprocess
 
-# Verifica si ffmpeg está disponible
-ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
-print(f"🔧 FFMPEG path: {ffmpeg_path}")
+def dividir_video_en_segmentos(input_path, output_dir, duracion_segmento=600):
+    output_paths = []
 
-def dividir_video_en_segmentos(video_path, output_dir, duracion_segmento=600):
-    nombre_base = os.path.splitext(os.path.basename(video_path))[0]
-
-    output_pattern = os.path.join(output_dir, f"{nombre_base}_%03d.mp4")
-
-    comando = [
-        "ffmpeg",
-        "-i", video_path,
-        "-c", "copy",
-        "-map", "0",
-        "-segment_time", str(duracion_segmento),
-        "-f", "segment",
-        "-reset_timestamps", "1",
-        output_pattern
+    comando_duracion = [
+        "ffprobe", "-v", "error", "-show_entries", "format=duration",
+        "-of", "default=noprint_wrappers=1:nokey=1", input_path
     ]
+    resultado = subprocess.run(comando_duracion, capture_output=True, text=True)
+    duracion_total = float(resultado.stdout.strip())
 
-    subprocess.run(comando, check=True)
+    inicio = 0
+    index = 1
 
-    # Lista de rutas generadas
-    return [
-        os.path.join(output_dir, f)
-        for f in sorted(os.listdir(output_dir))
-        if f.startswith(nombre_base) and f.endswith(".mp4")
-    ]
+    while inicio < duracion_total:
+        salida_clip = os.path.join(output_dir, f"clip_{index}_{uuid.uuid4().hex[:6]}.mp4")
+        comando = [
+            "ffmpeg", "-ss", str(inicio), "-i", input_path,
+            "-t", str(duracion_segmento), "-c", "copy", salida_clip, "-y"
+        ]
+        subprocess.run(comando, check=True)
+        output_paths.append(salida_clip)
+        inicio += duracion_segmento
+        index += 1
+
+    return output_paths
