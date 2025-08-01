@@ -7,8 +7,8 @@ from supabase_upload import upload_clip_to_supabase
 app = Flask(__name__)
 
 @app.route("/", methods=["GET"])
-def home():
-    return {"status": "ok", "message": "Servidor funcionando en Railway ✅"}
+def healthcheck():
+    return jsonify({"status": "ok", "message": "Servidor funcionando"}), 200
 
 @app.route("/")
 def health():
