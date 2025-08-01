@@ -3,7 +3,7 @@ import uuid
 import subprocess
 
 def dividir_video_en_segmentos(input_path, output_dir, base_output_name, duracion_segmento=600):
-    output_paths = []
+    output_paths = dividir_video_en_segmentos(input_path, output_dir, base_output_name)
 
     comando_duracion = [
         "ffprobe", "-v", "error", "-show_entries", "format=duration",
