@@ -11,8 +11,8 @@ def healthcheck():
     return jsonify({"status": "ok", "message": "Servidor funcionando"}), 200
 
 @app.route("/")
-def health():
-    return "OK", 200
+def healthcheck():
+    return jsonify({"message": "Servidor funcionando en Railway ✅", "status": "ok"})
 
 @app.route("/", methods=["POST"])
 def dividir_podcast():
@@ -52,6 +52,6 @@ def dividir_podcast():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))  # fallback 8000 local
+    port = int(os.environ.get("PORT", 3000))  # fallback 8000 local
     app.run(host="0.0.0.0", port=port)
 
