@@ -20,4 +20,4 @@ COPY . .
 EXPOSE 8000
 
 # 7. Comando de arranque
-CMD ["gunicorn", "main:app", "--bind", "0.0.0.0:3000"]
+CMD ["gunicorn", "main:app", "--bind", "0.0.0.0:5000"]
