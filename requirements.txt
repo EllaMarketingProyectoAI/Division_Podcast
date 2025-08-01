@@ -1,5 +1,5 @@
 flask
-gunicorn
-python-dotenv
-supabase
 moviepy
+python-dotenv
+gunicorn
+supabase
