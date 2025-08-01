@@ -1,5 +1,6 @@
 import os
 import uuid
+import requests
 from supabase import create_client
 from dotenv import load_dotenv
 from ffmpeg_split import dividir_video_en_segmentos
@@ -22,6 +23,16 @@ def procesar_video_y_subir(user_id, url_video, supabase_file_name):
     clips = dividir_video_en_segmentos(local_video_path, clips_dir)
 
     uploaded_urls = []
+    
+      try:
+        response = requests.get(url_video, stream=True)
+        response.raise_for_status()
+        with open(local_video_path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Error al descargar el video: {e}")
+        return "Error al descargar el video"
 
     for clip_path in clips:
         file_name = os.path.basename(clip_path)
