@@ -52,6 +52,6 @@ def dividir_podcast():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 3000))  # fallback 8000 local
+    port = int(os.environ.get("PORT", 5000))  # fallback 8000 local
     app.run(host="0.0.0.0", port=port)
 
