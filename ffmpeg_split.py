@@ -1,3 +1,4 @@
+
 import os
 import uuid
 import subprocess
@@ -27,3 +28,4 @@ def dividir_video_en_segmentos(input_path, output_dir, duracion_segmento=600):
         index += 1
 
     return output_paths
+
