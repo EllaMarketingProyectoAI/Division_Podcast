@@ -1,7 +1,6 @@
-flask
-gunicorn
-supabase
-moviepy
-python-dotenv
-imageio-ffmpeg
+Flask
+moviepy==1.0.3
 requests
+python-dotenv
+supabase
+gunicorn
