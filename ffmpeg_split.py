@@ -19,7 +19,10 @@ def dividir_video_en_segmentos(input_path, output_dir, base_output_name, duracio
         salida_clip = os.path.join(output_dir, f"{base_output_name}_clip{index}.mp4")
         comando = [
             "ffmpeg", "-ss", str(inicio), "-i", input_path,
-            "-t", str(duracion_segmento), "-c", "copy", salida_clip, "-y"
+            "-t", str(duracion_segmento),
+            "-c:v", "libx264", "-preset", "veryfast",
+            "-c:a", "aac", "-b:a", "128k",
+            salida_clip, "-y"
         ]
         subprocess.run(comando, check=True)
         output_paths.append(salida_clip)
