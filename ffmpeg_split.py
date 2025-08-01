@@ -1,7 +1,8 @@
 import os
+import uuid
 import subprocess
 
-def dividir_video_en_segmentos(input_path, output_dir, duracion_segmento=600):
+def dividir_video_en_segmentos(input_path, output_dir, base_output_name, duracion_segmento=600):
     output_paths = []
 
     comando_duracion = [
@@ -15,7 +16,7 @@ def dividir_video_en_segmentos(input_path, output_dir, duracion_segmento=600):
     index = 1
 
     while inicio < duracion_total:
-        salida_clip = os.path.join(output_dir, f"temp_clip_{index}.mp4")
+        salida_clip = os.path.join(output_dir, f"{base_output_name}_clip{index}.mp4")
         comando = [
             "ffmpeg", "-ss", str(inicio), "-i", input_path,
             "-t", str(duracion_segmento), "-c", "copy", salida_clip, "-y"
