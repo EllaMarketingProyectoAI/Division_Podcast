@@ -3,6 +3,11 @@ from supabase_upload import procesar_video_y_subir
 
 app = Flask(__name__)
 
+# ✅ Ruta para el healthcheck
+@app.route("/", methods=["GET"])
+def health_check():
+    return "✅ Service is running", 200
+
 @app.route("/", methods=["POST"])
 def handle_request():
     try:
