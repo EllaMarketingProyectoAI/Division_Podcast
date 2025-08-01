@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify
 import os
 from supabase_upload import procesar_video_y_subir
@@ -12,23 +13,19 @@ def healthcheck():
 def procesar_post():
     try:
         data = request.get_json(force=True)
-
         user_id = data.get("user_id")
         url_video = data.get("url_video")
         supabase_file_name = data.get("supabaseFileName")
 
-        if not user_id or not url_video or not supabase_file_name:
-            return jsonify({"status": "error", "message": "Faltan campos requeridos"}), 400
+        print(f"👤 User ID: {user_id}")
+        print(f"🎥 URL: {url_video}")
+        print(f"🗂️ Archivo: {supabase_file_name}")
 
-        result = procesar_video_y_subir(user_id, url_video, supabase_file_name)
-
-        return jsonify({
-            "status": "success",
-            "message": f"{len(result)} clips creados y subidos",
-            "clips": result
-        }), 200
+        uploaded_urls = procesar_video_y_subir(user_id, url_video, supabase_file_name)
+        return jsonify({"status": "ok", "urls": uploaded_urls})
 
     except Exception as e:
+        print(f"❌ Error general en POST: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == "__main__":
