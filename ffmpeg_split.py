@@ -1,72 +1,50 @@
 import os
-import math
-import requests
-import subprocess
 import uuid
-from moviepy.editor import VideoFileClip
-from supabase import create_client
-from dotenv import load_dotenv
+import subprocess
 
-load_dotenv()
+def dividir_video_en_segmentos(input_path, output_dir, base_output_name, duracion_segmento=600):
+    output_paths = []
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-BUCKET_NAME = "videospodcast"
-
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-def sanitize_filename(filename):
-    if filename.endswith(".mp4"):
-        return filename[:-4]
-    return filename
-
-def download_video(video_url, local_filename):
-    response = requests.get(video_url, stream=True)
-    if response.status_code == 200:
-        with open(local_filename, 'wb') as f:
-            for chunk in response.iter_content(1024 * 1024):
-                f.write(chunk)
-    else:
-        raise Exception(f"Error al descargar el video: {response.status_code}")
-
-def get_video_duration(path):
-    clip = VideoFileClip(path)
-    duration = int(clip.duration)
-    clip.close()
-    return duration
-
-def split_and_upload(video_path, output_base_name, user_id):
-    duration = get_video_duration(video_path)
-    segment_duration = 600  # 10 min
-    num_clips = math.ceil(duration / segment_duration)
-    uploaded_urls = []
-
-    for i in range(num_clips):
-        start = i * segment_duration
-        output_filename = f"{output_base_name}_clip{i + 1}.mp4"
-        output_path = os.path.join("/tmp", output_filename)
-
-        command = [
-            "ffmpeg", "-ss", str(start), "-i", video_path,
-            "-t", str(segment_duration),
-            "-c:v", "libx264", "-preset", "ultrafast",
-            "-c:a", "aac", "-b:a", "128k",
-            "-y", output_path
+    try:
+        # Obtener duración del video
+        comando_duracion = [
+            "ffprobe", "-v", "error", "-show_entries", "format=duration",
+            "-of", "default=noprint_wrappers=1:nokey=1", input_path
         ]
+        resultado = subprocess.run(comando_duracion, capture_output=True, text=True, check=True)
+        duracion_total = float(resultado.stdout.strip())
 
-        try:
-            subprocess.run(command, check=True)
-        except subprocess.CalledProcessError as e:
-            print(f"❌ Error al generar el clip {i + 1}: {e}")
-            continue
+        # Limpiar doble extensión .mp4 si existe
+        if base_output_name.endswith(".mp4"):
+            base_output_name = base_output_name[:-4]
 
-        with open(output_path, "rb") as f:
-            storage_path = f"PodcastCortados/{output_filename}"
-            supabase.storage.from_(BUCKET_NAME).upload(storage_path, f, {"x-upsert": "true"})
+        inicio = 0
+        index = 1
 
-        public_url = f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET_NAME}/{storage_path}"
-        uploaded_urls.append(public_url)
+        while inicio < duracion_total:
+            salida_clip = os.path.join(output_dir, f"{base_output_name}_clip{index}.mp4")
+            tiempo_duracion = min(duracion_segmento, duracion_total - inicio)
 
-        os.remove(output_path)
+            comando = [
+                "ffmpeg", "-v", "error",
+                "-ss", str(inicio), "-i", input_path,
+                "-t", str(tiempo_duracion),
+                "-c:v", "libx264", "-preset", "veryfast", "-threads", "1", "-bufsize", "512k",
+                "-c:a", "aac", "-b:a", "96k",
+                salida_clip, "-y"
+            ]
 
-    return uploaded_urls
+            subprocess.run(comando, check=True)
+            output_paths.append(salida_clip)
+
+            inicio += duracion_segmento
+            index += 1
+
+        return output_paths
+
+    except subprocess.CalledProcessError as e:
+        print("❌ Error en FFmpeg:", e)
+        raise e
+    except Exception as e:
+        print("❌ Error general:", e)
+        raise e
