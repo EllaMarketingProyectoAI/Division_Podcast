@@ -1,6 +1,6 @@
 from flask import Flask, jsonify
 import os
-from supabase_upload import subir_a_supabase
+from supabase_upload import procesar_video_y_subir
 
 app = Flask(__name__)
 
@@ -8,11 +8,14 @@ app = Flask(__name__)
 def healthcheck():
     return jsonify({"message": "Servidor funcionando en Railway ✅", "status": "ok"})
 
-@app.route("/procesar")
+@app.route("/procesar", methods=["GET"])
 def procesar():
-    subir_a_supabase()
-    return jsonify({"message": "Procesamiento iniciado ✅", "status": "ok"})
+    try:
+        clips = procesar_video_y_subir()
+        return jsonify({"status": "success", "clips": clips})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 3000))
     app.run(host="0.0.0.0", port=port)
