@@ -1,5 +1,7 @@
 flask
-moviepy
-python-dotenv
 gunicorn
 supabase
+moviepy
+python-dotenv
+imageio-ffmpeg
+requests
