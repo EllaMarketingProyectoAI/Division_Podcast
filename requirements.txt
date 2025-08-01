@@ -1,6 +1,7 @@
 Flask
-moviepy==1.0.3
-requests
-python-dotenv
-supabase
 gunicorn
+requests
+supabase
+moviepy
+python-dotenv
+imageio-ffmpeg
