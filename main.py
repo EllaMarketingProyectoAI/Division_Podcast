@@ -1,57 +1,18 @@
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify
 import os
-import uuid
-from ffmpeg_split import dividir_video_en_segmentos
-from supabase_upload import upload_clip_to_supabase
+from supabase_upload import subir_a_supabase
 
 app = Flask(__name__)
-
-@app.route("/", methods=["GET"])
-def healthcheck():
-    return jsonify({"status": "ok", "message": "Servidor funcionando"}), 200
 
 @app.route("/")
 def healthcheck():
     return jsonify({"message": "Servidor funcionando en Railway ✅", "status": "ok"})
 
-@app.route("/", methods=["POST"])
-def dividir_podcast():
-    try:
-        data = request.get_json(force=True)
-        user_id = data.get("user_id")
-        url_video = data.get("url_video")
-        supabase_file_name = data.get("supabaseFileName")
-
-        if not user_id or not url_video or not supabase_file_name:
-            return jsonify({"status": "error", "message": "Missing fields"}), 400
-
-        # Descargar el video temporalmente
-        local_video_path = f"/tmp/{supabase_file_name}"
-        os.system(f"wget '{url_video}' -O {local_video_path}")
-
-        # Crear carpeta temporal para los clips
-        clips_dir = f"/tmp/clips_{uuid.uuid4()}"
-        os.makedirs(clips_dir, exist_ok=True)
-
-        # Dividir video
-        clips = dividir_video_en_segmentos(local_video_path, clips_dir)
-
-        # Subir a Supabase
-        urls = []
-        for clip in clips:
-            upload_clip_to_supabase(clip, user_id, supabase_file_name)
-            urls.append(clip)
-
-        return jsonify({
-            "status": "success",
-            "message": f"{len(urls)} clips created and uploaded",
-            "clips": urls
-        }), 200
-
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+@app.route("/procesar")
+def procesar():
+    subir_a_supabase()
+    return jsonify({"message": "Procesamiento iniciado ✅", "status": "ok"})
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # fallback 8000 local
+    port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-
