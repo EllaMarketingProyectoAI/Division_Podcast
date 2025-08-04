@@ -20,7 +20,7 @@ def dividir_video_en_segmentos(input_path, output_dir, base_output_name, duracio
         comando = [
             "ffmpeg", "-ss", str(inicio), "-i", input_path,
             "-t", str(duracion_segmento),
-            "-c:v", "libx264", "-preset", "veryfast",
+            "-c:v", "libx264", "-preset", "ultrafast",
             "-c:a", "aac", "-b:a", "128k",
             salida_clip, "-y"
         ]
