@@ -53,9 +53,5 @@ def dividir_y_subir():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@app.route("/", methods=["GET"])
-def healthcheck():
-    return "OK", 200
-
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=5000)
