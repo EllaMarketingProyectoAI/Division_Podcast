@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from supabase_upload import upload_file_to_supabase
+from supabase_upload import subir_a_supabase
 from ffmpeg_split import dividir_video
 import os
 import uuid
@@ -13,21 +13,40 @@ app = Flask(__name__)
 def health_check():
     return "✅ Service is running", 200
 
-@app.route("/", methods=["POST"])
-def procesar_video():
+@app.route('/', methods=['POST'])
+def dividir_podcast():
     try:
         data = request.get_json()
-        user_id = data["user_id"]
-        url_video = data["url_video"]
-        supabase_file_name = data["supabaseFileName"]
+        user_id = data['user_id']
+        url_video = data['url_video']
+        supabase_file_name = data['supabaseFileName']
 
-        # Crear carpeta temporal por usuario para evitar conflictos
-        tmp_folder = f"/tmp/{user_id}"
-        os.makedirs(tmp_folder, exist_ok=True)
+        # Generar ID de sesión
+        session_id = str(uuid.uuid4())
 
-        resultado = dividir_video(url_video, supabase_file_name, user_id, tmp_folder)
+        # Ejecutar función de división
+        clips_info = dividir_video(url_video, supabase_file_name, session_id)
 
-        return jsonify({"status": "success", "clips": resultado})
+        # Subir todos los clips a Supabase
+        resultados = []
+        for clip in clips_info:
+            url_video_supabase = subir_a_supabase(
+                clip['ruta_mp4'], 
+                f"videospodcast/PodcastCortados/{clip['nombre']}", 
+                "video/mp4"
+            )
+            url_audio_supabase = subir_a_supabase(
+                clip['ruta_mp3'], 
+                f"videospodcast/PodcastCortadosAudio/{clip['nombre'].replace('.mp4', '.mp3')}", 
+                "audio/mpeg"
+            )
+            resultados.append({
+                "clip": clip['n'],
+                "video_url": url_video_supabase,
+                "audio_url": url_audio_supabase
+            })
+
+        return jsonify({"status": "success", "clips": resultados})
 
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
