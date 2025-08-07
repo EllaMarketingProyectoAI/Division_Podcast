@@ -4,7 +4,7 @@ import subprocess
 def dividir_video_en_segmentos(input_path, output_dir, base_output_name, duracion_segmento=600):
     output_paths = []
 
-    # 1. Obtener duración total
+    # Obtener duración total
     comando_duracion = [
         "ffprobe", "-v", "error", "-show_entries", "format=duration",
         "-of", "default=noprint_wrappers=1:nokey=1", input_path
@@ -19,7 +19,6 @@ def dividir_video_en_segmentos(input_path, output_dir, base_output_name, duracio
         mp4_output = os.path.join(output_dir, f"{base_output_name}_clip{index}.mp4")
         mp3_output = os.path.join(output_dir, f"{base_output_name}_clip{index}.mp3")
 
-        # 2. Crear clip de video
         comando_mp4 = [
             "ffmpeg", "-ss", str(inicio), "-i", input_path,
             "-t", str(duracion_segmento),
@@ -29,7 +28,6 @@ def dividir_video_en_segmentos(input_path, output_dir, base_output_name, duracio
         ]
         subprocess.run(comando_mp4, check=True)
 
-        # 3. Extraer audio
         comando_mp3 = [
             "ffmpeg", "-i", mp4_output,
             "-vn", "-acodec", "libmp3lame", "-q:a", "2",
