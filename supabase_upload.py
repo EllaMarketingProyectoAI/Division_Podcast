@@ -6,31 +6,22 @@ from dotenv import load_dotenv
 from ffmpeg_split import dividir_video
 from os.path import basename, splitext
 
+url = os.getenv("SUPABASE_URL")
+key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
+supabase = create_client(url, key)
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-def upload_file_to_supabase(file_path, supabase_path, content_type=None):
-    bucket = "videospodcast"
-    
-    # Detectar MIME si no se especifica
-    if not content_type:
-        content_type = mimetypes.guess_type(file_path)[0] or "application/octet-stream"
+def subir_a_supabase(file_path, bucket_path, mime_type):
+    bucket_name = "videospodcast"
 
     with open(file_path, "rb") as f:
         data = f.read()
 
-    supabase.storage.from_(bucket).upload(
-        path=supabase_path,
+    supabase.storage.from_(bucket_name).upload(
+        path=bucket_path,
         file=data,
-        file_options={
-            "content-type": content_type,
-            "x-upsert": "true"
-        }
+        file_options={"content-type": mime_type},
+        upsert=True
     )
 
-    public_url = f"{SUPABASE_URL}/storage/v1/object/public/{bucket}/{supabase_path}"
-    return public_url
+    return f"{url}/storage/v1/object/public/{bucket_name}/{bucket_path}"
