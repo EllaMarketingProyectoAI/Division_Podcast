@@ -38,5 +38,15 @@ def dividir_video_en_segmentos(input_path, output_dir, base_output_name, duracio
         output_paths.append((mp4_output, mp3_output))
         inicio += duracion_segmento
         index += 1
+        try:
+            subprocess.run(comando_mp4, check=True)
+        except subprocess.CalledProcessError as e:
+            print("❌ Error ejecutando comando_mp4:", e)
+            raise
+        try:
+            subprocess.run(comando_mp3, check=True)
+        except subprocess.CalledProcessError as e:
+            print("❌ Error ejecutando comando_mp3:", e)
+            raise
 
     return output_paths
