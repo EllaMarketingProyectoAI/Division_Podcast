@@ -9,6 +9,10 @@ from supabase import create_client
 
 app = Flask(__name__)
 
+@app.route("/", methods=["GET"])
+def health_check():
+    return "✅ Service is running", 200
+
 @app.route("/", methods=["POST"])
 def procesar_video():
     try:
