@@ -7,6 +7,13 @@ import requests
 from dotenv import load_dotenv
 from supabase import create_client
 
+from flask import Flask, request, jsonify
+from supabase_upload import subir_archivos
+from ffmpeg_split import dividir_video_en_segmentos
+import os
+import uuid
+import requests
+
 app = Flask(__name__)
 
 @app.route("/", methods=["GET"])
@@ -24,7 +31,11 @@ def dividir_y_subir():
         if not user_id or not video_url or not base_filename:
             return jsonify({"status": "error", "message": "Missing required fields"}), 400
 
-        # 1. Descargar video a /tmp
+        # Quitar extensión .mp4 si existe
+        if base_filename.endswith(".mp4"):
+            base_filename = base_filename[:-4]
+
+        # 1. Descargar video
         temp_video_path = f"/tmp/{uuid.uuid4()}_{base_filename}.mp4"
         with requests.get(video_url, stream=True) as r:
             r.raise_for_status()
@@ -32,7 +43,7 @@ def dividir_y_subir():
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
 
-        # 2. Dividir en clips
+        # 2. Dividir video
         output_dir = f"/tmp/clips_{uuid.uuid4()}"
         os.makedirs(output_dir, exist_ok=True)
         clips = dividir_video_en_segmentos(temp_video_path, output_dir, base_filename)
@@ -40,7 +51,7 @@ def dividir_y_subir():
         # 3. Subir a Supabase
         urls = subir_archivos(clips, base_filename)
 
-        # 4. Limpiar archivos
+        # 4. Limpiar
         os.remove(temp_video_path)
         for mp4, mp3 in clips:
             os.remove(mp4)
@@ -54,4 +65,3 @@ def dividir_y_subir():
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=5000)
-
