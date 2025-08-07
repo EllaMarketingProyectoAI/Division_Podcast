@@ -5,9 +5,6 @@ import subprocess
 def dividir_video_en_segmentos(input_path, output_dir, base_output_name, duracion_segmento=600):
     output_paths = []
 
-    # Limpiar extensión doble si existe
-    nombre_limpio = os.path.splitext(base_output_name)[0]
-
     comando_duracion = [
         "ffprobe", "-v", "error", "-show_entries", "format=duration",
         "-of", "default=noprint_wrappers=1:nokey=1", input_path
@@ -19,8 +16,8 @@ def dividir_video_en_segmentos(input_path, output_dir, base_output_name, duracio
     index = 1
 
     while inicio < duracion_total:
-        mp4_output = os.path.join(output_dir, f"{nombre_limpio}_clip{index}.mp4")
-        mp3_output = os.path.join(output_dir, f"{nombre_limpio}_clip{index}.mp3")
+        mp4_output = os.path.join(output_dir, f"{base_output_name}_clip{index}.mp4")
+        mp3_output = os.path.join(output_dir, f"{base_output_name}_clip{index}.mp3")
 
         comando_mp4 = [
             "ffmpeg", "-ss", str(inicio), "-i", input_path,
