@@ -30,7 +30,7 @@ def dividir_y_subir():
         temp_video_path = f"/tmp/{video_id}_{clean_filename}.mp4"
         with requests.get(video_url, stream=True) as r:
             r.raise_for_status()
-            with open(temp_video_path, "wb") as f:
+            with open("/tmp/video.mp4", "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
 
@@ -52,7 +52,9 @@ def dividir_y_subir():
         return jsonify({"status": "success", "clips": urls}), 200
 
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({"message": str(e), "status": "error"}), 500
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=5000)
