@@ -1,6 +1,12 @@
-from supabase import create_client
 import os
-import mimetypes
+import uuid
+import requests
+from supabase import create_client, Client
+from dotenv import load_dotenv
+from ffmpeg_split import dividir_video
+from os.path import basename, splitext
+
+
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
