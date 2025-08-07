@@ -1,6 +1,11 @@
 from flask import Flask, request, jsonify
-from ffmpeg_split import dividir_video
+from supabase_upload import subir_archivos
+from ffmpeg_split import dividir_video_en_segmentos
 import os
+import uuid
+import requests
+from dotenv import load_dotenv
+from supabase import create_client
 
 app = Flask(__name__)
 
