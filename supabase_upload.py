@@ -15,11 +15,12 @@ BUCKET_NAME = "videospodcast"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def subir_archivos(lista_archivos, nombre_base):
+    nombre_limpio = splitext(nombre_base)[0]  # Quitar .mp4 si viene
     urls = []
 
     for i, (mp4_path, mp3_path) in enumerate(lista_archivos, start=1):
-        mp4_dest = f"PodcastCortados/{nombre_base}_clip{i}.mp4"
-        mp3_dest = f"PodcastCortadosAudio/{nombre_base}_clip{i}.mp3"
+        mp4_dest = f"PodcastCortados/{nombre_limpio}_clip{i}.mp4"
+        mp3_dest = f"PodcastCortadosAudio/{nombre_limpio}_clip{i}.mp3"
 
         with open(mp4_path, "rb") as f:
             supabase.storage.from_(BUCKET_NAME).upload(mp4_dest, f, {"x-upsert": "true"})
@@ -34,3 +35,4 @@ def subir_archivos(lista_archivos, nombre_base):
         })
 
     return urls
+
