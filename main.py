@@ -4,9 +4,12 @@ from ffmpeg_split import dividir_video_en_segmentos
 import os
 import uuid
 import requests
-from supabase import create_client
+import logging
 from dotenv import load_dotenv
+from supabase import create_client
 
+# Logging para debugging
+logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
 
@@ -51,7 +54,11 @@ def dividir_y_subir():
         return jsonify({"status": "success", "clips": urls})
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=5000)
+
+
