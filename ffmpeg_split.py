@@ -26,17 +26,14 @@ def dividir_video_en_segmentos(input_path, output_dir, base_output_name, duracio
             "-c:a", "aac", "-b:a", "128k",
             mp4_output, "-y"
         ]
-        subprocess.run(comando_mp4, check=True)
+        try:
+            subprocess.run(comando_mp4, check=True, capture_output=True, text=True)
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"FFmpeg mp4 failed: {e.stderr}")
 
-        comando_mp3 = [
-            "ffmpeg", "-i", mp4_output,
-            "-vn", "-acodec", "libmp3lame", "-q:a", "2",
-            mp3_output, "-y"
-        ]
-        subprocess.run(comando_mp3, check=True)
-
-        output_paths.append((mp4_output, mp3_output))
-        inicio += duracion_segmento
-        index += 1
+        try:
+            subprocess.run(comando_mp3, check=True, capture_output=True, text=True)
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"FFmpeg mp3 failed: {e.stderr}")
 
     return output_paths
