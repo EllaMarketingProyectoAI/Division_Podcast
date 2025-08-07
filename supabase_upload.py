@@ -17,18 +17,24 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 def subir_archivos(lista_archivos, nombre_base):
     urls = []
 
-    # Quitar extensión del nombre base
-    nombre_limpio = os.path.splitext(nombre_base)[0]
-
     for i, (mp4_path, mp3_path) in enumerate(lista_archivos, start=1):
-        mp4_dest = f"PodcastCortados/{nombre_limpio}_clip{i}.mp4"
-        mp3_dest = f"PodcastCortadosAudio/{nombre_limpio}_clip{i}.mp3"
+        # Remueve extensión .mp4 del nombre base si viene con ella
+        clean_base = nombre_base.replace(".mp4", "")
+
+        mp4_dest = f"PodcastCortados/{clean_base}_clip{i}.mp4"
+        mp3_dest = f"PodcastCortadosAudio/{clean_base}_clip{i}.mp3"
 
         with open(mp4_path, "rb") as f:
-            supabase.storage.from_(BUCKET_NAME).upload(mp4_dest, f, {"x-upsert": "true"})
+            supabase.storage.from_(BUCKET_NAME).upload(
+                mp4_dest, f,
+                {"x-upsert": "true", "Content-Type": "video/mp4"}
+            )
 
         with open(mp3_path, "rb") as f:
-            supabase.storage.from_(BUCKET_NAME).upload(mp3_dest, f, {"x-upsert": "true"})
+            supabase.storage.from_(BUCKET_NAME).upload(
+                mp3_dest, f,
+                {"x-upsert": "true", "Content-Type": "audio/mpeg"}
+            )
 
         urls.append({
             "clip": i,
