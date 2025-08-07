@@ -1,61 +1,27 @@
 from flask import Flask, request, jsonify
-from supabase_upload import subir_archivos
-from ffmpeg_split import dividir_video_en_segmentos
+from ffmpeg_split import dividir_video
 import os
-import uuid
-import requests
-from dotenv import load_dotenv
-from supabase import create_client
 
 app = Flask(__name__)
 
-@app.route("/", methods=["GET"])
-def health_check():
-    return "✅ Service is running", 200
-
 @app.route("/", methods=["POST"])
-def dividir_y_subir():
+def procesar_video():
     try:
         data = request.get_json()
-        user_id = data.get("user_id")
-        video_url = data.get("url_video")
-        base_filename = data.get("supabaseFileName")
+        user_id = data["user_id"]
+        url_video = data["url_video"]
+        supabase_file_name = data["supabaseFileName"]
 
-        if not user_id or not video_url or not base_filename:
-            return jsonify({"status": "error", "message": "Missing required fields"}), 400
+        # Crear carpeta temporal por usuario para evitar conflictos
+        tmp_folder = f"/tmp/{user_id}"
+        os.makedirs(tmp_folder, exist_ok=True)
 
-        # 1. Descargar video a /tmp
-        video_id = str(uuid.uuid4())
-        clean_filename = base_filename.replace(".mp4", "")
-        temp_video_path = f"/tmp/{video_id}_{clean_filename}.mp4"
-        with requests.get(video_url, stream=True) as r:
-            r.raise_for_status()
-            with open("/tmp/video.mp4", "wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
+        resultado = dividir_video(url_video, supabase_file_name, user_id, tmp_folder)
 
-        # 2. Dividir video
-        output_dir = f"/tmp/clips_{uuid.uuid4()}"
-        os.makedirs(output_dir, exist_ok=True)
-        clips = dividir_video_en_segmentos(temp_video_path, output_dir, clean_filename)
-
-        # 3. Subir a Supabase
-        urls = subir_archivos(clips, clean_filename)
-
-        # 4. Limpiar
-        os.remove(temp_video_path)
-        for mp4, mp3 in clips:
-            os.remove(mp4)
-            os.remove(mp3)
-        os.rmdir(output_dir)
-
-        return jsonify({"status": "success", "clips": urls}), 200
+        return jsonify({"status": "success", "clips": resultado})
 
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({"message": str(e), "status": "error"}), 500
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=5000)
-
+    app.run(debug=True, host="0.0.0.0")
