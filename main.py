@@ -10,7 +10,7 @@ from supabase import create_client
 app = Flask(__name__)
 
 @app.route("/", methods=["GET"])
-def healthcheck():
+def health_check():
     return "✅ Service is running", 200
 
 @app.route("/", methods=["POST"])
@@ -24,30 +24,36 @@ def dividir_y_subir():
         if not user_id or not video_url or not base_filename:
             return jsonify({"status": "error", "message": "Missing required fields"}), 400
 
-        temp_video_path = f"/tmp/{uuid.uuid4()}_{base_filename}"
+        # 1. Descargar video a /tmp
+        video_id = str(uuid.uuid4())
+        clean_filename = base_filename.replace(".mp4", "")
+        temp_video_path = f"/tmp/{video_id}_{clean_filename}.mp4"
         with requests.get(video_url, stream=True) as r:
             r.raise_for_status()
             with open(temp_video_path, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
 
+        # 2. Dividir video
         output_dir = f"/tmp/clips_{uuid.uuid4()}"
         os.makedirs(output_dir, exist_ok=True)
+        clips = dividir_video_en_segmentos(temp_video_path, output_dir, clean_filename)
 
-        clips = dividir_video_en_segmentos(temp_video_path, output_dir, base_filename)
+        # 3. Subir a Supabase
+        urls = subir_archivos(clips, clean_filename)
 
-        urls = subir_archivos(clips, base_filename)
-
+        # 4. Limpiar
         os.remove(temp_video_path)
         for mp4, mp3 in clips:
             os.remove(mp4)
             os.remove(mp3)
         os.rmdir(output_dir)
 
-        return jsonify({"status": "success", "clips": urls})
+        return jsonify({"status": "success", "clips": urls}), 200
 
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=5000)
+
