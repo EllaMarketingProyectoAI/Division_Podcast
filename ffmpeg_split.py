@@ -4,7 +4,7 @@ import subprocess
 def dividir_video_en_segmentos(input_path, output_dir, base_output_name, duracion_segmento=600):
     output_paths = []
 
-    # Obtener duración total
+    # Obtener duración del video
     comando_duracion = [
         "ffprobe", "-v", "error", "-show_entries", "format=duration",
         "-of", "default=noprint_wrappers=1:nokey=1", input_path
@@ -22,7 +22,7 @@ def dividir_video_en_segmentos(input_path, output_dir, base_output_name, duracio
         comando_mp4 = [
             "ffmpeg", "-ss", str(inicio), "-i", input_path,
             "-t", str(duracion_segmento),
-            "-c:v", "libx264", "-preset", "veryfast",
+            "-c:v", "libx264", "-preset", "veryfast", "-crf", "28",
             "-c:a", "aac", "-b:a", "128k",
             mp4_output, "-y"
         ]
