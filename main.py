@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
-from supabase_upload import subir_archivos
-from ffmpeg_split import dividir_video_en_segmentos
+from supabase_upload import upload_file_to_supabase
+from ffmpeg_split import dividir_video
 import os
 import uuid
 import requests
