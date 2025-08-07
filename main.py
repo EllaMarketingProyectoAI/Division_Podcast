@@ -52,11 +52,13 @@ def dividir_y_subir():
         os.rmdir(output_dir)
 
         return jsonify({"status": "success", "clips": urls})
-
+        
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({"status": "error", "message": str(e)}), 500
+    import traceback
+    error_details = traceback.format_exc()
+    print("🔥 Error completo:", error_details)
+    return jsonify({"status": "error", "message": str(e), "details": error_details}), 500
+
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=5000)
