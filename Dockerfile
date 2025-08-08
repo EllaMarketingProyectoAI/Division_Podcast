@@ -23,8 +23,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --force-reinstall --no-cache-dir imageio imageio-ffmpeg scipy numpy decorator tqdm
 RUN pip uninstall -y moviepy && pip install --no-cache-dir --force-reinstall moviepy
 
-RUN python -c "import moviepy; print('moviepy:', moviepy.__file__); import os; print(os.listdir(os.path.dirname(moviepy.__file__)))"
-
 EXPOSE 5000
 
-CMD ["python", "-c", "import pkg_resources; print('INSTALLED:', [p.key for p in pkg_resources.working_set]); from moviepy.video.io.VideoFileClip import VideoFileClip"]
+CMD ["gunicorn", "main:app", "--bind", "0.0.0.0:5000"]
