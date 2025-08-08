@@ -12,7 +12,8 @@ RUN pip install --upgrade pip setuptools
 COPY . .
 
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --force-reinstall --no-cache-dir moviepy imageio imageio-ffmpeg scipy numpy decorator tqdm
+RUN pip install --force-reinstall --no-cache-dir imageio imageio-ffmpeg scipy numpy decorator tqdm
+RUN pip uninstall -y moviepy && pip install --no-binary=:all: --force-reinstall moviepy
 
 EXPOSE 5000
 
