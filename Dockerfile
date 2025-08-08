@@ -27,4 +27,4 @@ RUN python -c "import moviepy; print('moviepy:', moviepy.__file__); import os; p
 
 EXPOSE 5000
 
-CMD ["python", "-c", "import pkg_resources; print('INSTALLED:', [p.key for p in pkg_resources.working_set]); import moviepy.editor"]
+CMD ["python", "-c", "import pkg_resources; print('INSTALLED:', [p.key for p in pkg_resources.working_set]); from moviepy.video.io.VideoFileClip import VideoFileClip"]
