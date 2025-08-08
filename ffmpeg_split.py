@@ -114,35 +114,30 @@ def dividir_video(url_video, base_name, session_id):
 
         partes = duracion // 600 + int(duracion % 600 > 0)
         print(f"Se crearán {partes} clips de máximo 10 minutos cada uno")
-        
-        resultados = []
-
-        partes = 8  # Dividir en 8 partes iguales
-        clip_duration = duracion / partes
-
-        print(f"Se crearán {partes} clips de aproximadamente {clip_duration:.2f} segundos cada uno")
 
         resultados = []
 
         for i in range(partes):
-            start = int(i * clip_duration)
-            # Ajustar duración para el último clip
+            start = i * 600
             if i == partes - 1:
-                dur = duracion - start
+                clip_duration = duracion - start
+                if clip_duration <= 0:
+                    print(f"Clip {i+1} tiene duración no válida ({clip_duration}s), se omite")
+                    continue
             else:
-                dur = int(clip_duration)
+                clip_duration = 600
 
             output_name = f"{base_name.replace('.mp4', '')}_clip{i+1}.mp4"
             output_mp4 = os.path.join(tmp_folder, output_name)
             output_mp3 = output_mp4.replace(".mp4", ".mp3")
 
-            print(f"\nProcesando clip {i+1}/{partes} (inicio: {start}s, duración: {dur}s)")
+            print(f"\nProcesando clip {i+1}/{partes} (inicio: {start}s, duración: {clip_duration}s)")
 
             comando_mp4 = [
                 "ffmpeg", "-y",
                 "-i", local_filename,
                 "-ss", str(start),
-                "-t", str(dur),
+                "-t", str(clip_duration),
                 "-c:v", "libx264",
                 "-preset", "ultrafast",
                 "-crf", "28",
@@ -180,7 +175,7 @@ def dividir_video(url_video, base_name, session_id):
                     "nombre": output_name,
                     "ruta_mp4": output_mp4,
                     "ruta_mp3": output_mp3,
-                    "duracion": dur,
+                    "duracion": clip_duration,
                     "tamaño_mb4": round(clip_size / (1024*1024), 2),
                     "tamaño_mp3": round(audio_size / (1024*1024), 2),
                     "error": None
@@ -192,7 +187,7 @@ def dividir_video(url_video, base_name, session_id):
                     "nombre": output_name,
                     "ruta_mp4": None,
                     "ruta_mp3": None,
-                    "duracion": dur,
+                    "duracion": clip_duration,
                     "tamaño_mb4": 0,
                     "tamaño_mp3": 0,
                     "error": str(e)
