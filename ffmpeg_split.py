@@ -135,7 +135,7 @@ def dividir_video(url_video, base_name, session_id):
             comando_mp4 = [
                 "ffmpeg", "-y",
                 "-ss", str(start),
-                "-i", local_filename,
+                "-i", local_filename,  # Siempre usar el archivo original descargado
                 "-t", str(clip_duration),
                 "-c:v", "libx264",
                 "-preset", "ultrafast",  # Más rápido para archivos grandes
