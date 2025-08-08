@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y \
     wget \
     && apt-get clean
 
+RUN pip install moviepy
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
