@@ -5,6 +5,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     wget \
+    build-essential \
     && apt-get clean
 
 RUN pip install --upgrade pip setuptools
