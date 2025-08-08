@@ -1,3 +1,4 @@
+#Fuerza Rebuild
 # 1. Imagen base
 FROM python:3.12-slim
 
@@ -17,7 +18,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # 6. Exponer puerto (opcional, pero recomendado)
-EXPOSE 8000
+EXPOSE 5000
 
 # 7. Comando de arranque
 CMD ["gunicorn", "main:app", "--bind", "0.0.0.0:5000"]
