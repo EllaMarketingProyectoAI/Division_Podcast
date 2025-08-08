@@ -5,3 +5,4 @@ supabase
 moviepy
 python-dotenv
 imageio-ffmpeg
+
