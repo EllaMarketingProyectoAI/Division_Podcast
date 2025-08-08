@@ -135,8 +135,8 @@ def dividir_video(url_video, base_name, session_id):
 
             comando_mp4 = [
                 "ffmpeg", "-y",
-                "-i", local_filename,
                 "-ss", str(start),
+                "-i", local_filename,
                 "-t", str(clip_duration),
                 "-c:v", "libx264",
                 "-preset", "ultrafast",
@@ -146,6 +146,7 @@ def dividir_video(url_video, base_name, session_id):
             ]
 
             try:
+                print(f"Ejecutando: {' '.join(comando_mp4)}")
                 ejecutar_ffmpeg_con_timeout(comando_mp4, timeout=900)
 
                 if not os.path.exists(output_mp4):
