@@ -6,6 +6,8 @@ import uuid
 import requests
 from dotenv import load_dotenv
 from supabase import create_client
+import pkg_resources
+print("INSTALLED PACKAGES:", [p.key for p in pkg_resources.working_set])
 
 app = Flask(__name__)
 
