@@ -4,5 +4,9 @@ requests
 supabase
 moviepy
 python-dotenv
+imageio
 imageio-ffmpeg
-
+scipy
+numpy
+decorator
+tqdm
