@@ -1,4 +1,3 @@
-ponlo en el codigo lel cambio
 FROM python:3.12-slim
 
 WORKDIR /app
