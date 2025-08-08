@@ -25,4 +25,4 @@ RUN pip uninstall -y moviepy && pip install --no-cache-dir --force-reinstall mov
 
 EXPOSE 5000
 
-CMD ["gunicorn", "main:app", "--bind", "0.0.0.0:5000"]
+CMD ["gunicorn", "main:app", "--bind", "0.0.0.0:5000", "--timeout", "1800"]
