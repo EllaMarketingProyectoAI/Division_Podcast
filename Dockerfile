@@ -14,4 +14,5 @@ RUN pip install --no-cache-dir -r requirements.txt && pip install moviepy && pip
 
 EXPOSE 5000
 
-CMD ["gunicorn", "main:app", "--bind", "0.0.0.0:5000"]
+# CMD de debug temporal: imprime paquetes e intenta importar moviepy.editor
+CMD ["python", "-c", "import pkg_resources; print('INSTALLED:', [p.key for p in pkg_resources.working_set]); import moviepy.editor"]
