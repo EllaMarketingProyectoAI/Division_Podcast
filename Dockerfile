@@ -1,26 +1,17 @@
-#Fuerza Rebuild
-# 1. Imagen base
+# Fuerza Rebuild
 FROM python:3.12-slim
 
-# 2. Establecer directorio de trabajo
 WORKDIR /app
 
-# 3. Instalar dependencias del sistema (como ffmpeg y wget)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     wget \
     && apt-get clean
 
-RUN pip install moviepy
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# 4. Copiar archivos del proyecto
 COPY . .
 
-# 6. Exponer puerto (opcional, pero recomendado)
+RUN pip install --no-cache-dir -r requirements.txt && pip install moviepy && pip freeze
+
 EXPOSE 5000
 
-# 7. Comando de arranque
 CMD ["gunicorn", "main:app", "--bind", "0.0.0.0:5000"]
