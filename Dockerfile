@@ -15,13 +15,15 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     && apt-get clean
 
-RUN pip install --upgrade pip setuptools
+RUN pip install --upgrade pip setuptools wheel
 
 COPY . .
 
+RUN python -c "import ssl; print(ssl.OPENSSL_VERSION)"
+
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --force-reinstall --no-cache-dir imageio imageio-ffmpeg scipy numpy decorator tqdm
-RUN pip uninstall -y moviepy && pip install --no-binary=:all: --force-reinstall moviepy
+RUN pip uninstall -y moviepy && pip install --no-cache-dir --force-reinstall moviepy
 
 EXPOSE 5000
 
