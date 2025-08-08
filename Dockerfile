@@ -14,17 +14,16 @@ RUN apt-get update && apt-get install -y \
     libjpeg-dev \
     libpng-dev \
     && apt-get clean
-RUN python -c "import moviepy; print('moviepy:', moviepy.__file__); import os; print(os.listdir(os.path.dirname(moviepy.__file__)))"
 
 RUN pip install --upgrade pip setuptools wheel
 
 COPY . .
 
-RUN python -c "import ssl; print(ssl.OPENSSL_VERSION)"
-
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --force-reinstall --no-cache-dir imageio imageio-ffmpeg scipy numpy decorator tqdm
 RUN pip uninstall -y moviepy && pip install --no-cache-dir --force-reinstall moviepy
+
+RUN python -c "import moviepy; print('moviepy:', moviepy.__file__); import os; print(os.listdir(os.path.dirname(moviepy.__file__)))"
 
 EXPOSE 5000
 
