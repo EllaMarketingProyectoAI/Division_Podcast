@@ -4,7 +4,7 @@ import uuid
 import subprocess
 from supabase_upload import subir_a_supabase
 import math
-from moviepy.editor import VideoFileClip
+from moviepy.video.io.VideoFileClip import VideoFileClip
 import time
 import signal
 
