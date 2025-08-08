@@ -1,3 +1,4 @@
+ponlo en el codigo lel cambio
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -14,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     libjpeg-dev \
     libpng-dev \
     && apt-get clean
+RUN python -c "import moviepy; print('moviepy:', moviepy.__file__); import os; print(os.listdir(os.path.dirname(moviepy.__file__)))"
 
 RUN pip install --upgrade pip setuptools wheel
 
