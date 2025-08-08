@@ -92,16 +92,16 @@ def ejecutar_ffmpeg_con_timeout(comando, timeout=600):
 def dividir_video(url_video, base_name, session_id):
     tmp_folder = "/tmp"
     local_filename = os.path.join(tmp_folder, f"{session_id}.mp4")
-    
+
     try:
         descargar_con_progreso(url_video, local_filename, timeout=600)  # 10 minutos max
-        
+
         if not os.path.exists(local_filename):
             raise Exception("El archivo no se descargó correctamente")
-            
+
         file_size = os.path.getsize(local_filename)
         print(f"Archivo descargado: {file_size / (1024*1024):.2f} MB")
-        
+
         print("Analizando duración del video...")
         video = None
         try:
@@ -111,14 +111,19 @@ def dividir_video(url_video, base_name, session_id):
         finally:
             if video:
                 video.close()
-        
-        partes = 8  # Dividir en 8 partes iguales
-        clip_duration = duracion / partes
-        
-        print(f"Se crearán {partes} clips de aproximadamente {clip_duration:.2f} segundos cada uno")
+
+        partes = duracion // 600 + int(duracion % 600 > 0)
+        print(f"Se crearán {partes} clips de máximo 10 minutos cada uno")
         
         resultados = []
-        
+
+        partes = 8  # Dividir en 8 partes iguales
+        clip_duration = duracion / partes
+
+        print(f"Se crearán {partes} clips de aproximadamente {clip_duration:.2f} segundos cada uno")
+
+        resultados = []
+
         for i in range(partes):
             start = int(i * clip_duration)
             # Ajustar duración para el último clip
@@ -126,13 +131,13 @@ def dividir_video(url_video, base_name, session_id):
                 dur = duracion - start
             else:
                 dur = int(clip_duration)
-            
+
             output_name = f"{base_name.replace('.mp4', '')}_clip{i+1}.mp4"
             output_mp4 = os.path.join(tmp_folder, output_name)
             output_mp3 = output_mp4.replace(".mp4", ".mp3")
-            
+
             print(f"\nProcesando clip {i+1}/{partes} (inicio: {start}s, duración: {dur}s)")
-            
+
             comando_mp4 = [
                 "ffmpeg", "-y",
                 "-i", local_filename,
@@ -144,16 +149,16 @@ def dividir_video(url_video, base_name, session_id):
                 "-c:a", "aac",
                 output_mp4
             ]
-            
+
             try:
                 ejecutar_ffmpeg_con_timeout(comando_mp4, timeout=900)
-                
+
                 if not os.path.exists(output_mp4):
                     raise Exception(f"No se pudo crear el clip {i+1}")
-                
+
                 clip_size = os.path.getsize(output_mp4)
                 print(f"Clip MP4 creado: {clip_size / (1024*1024):.2f} MB")
-                
+
                 comando_mp3 = [
                     "ffmpeg", "-y",
                     "-i", output_mp4,
@@ -161,15 +166,15 @@ def dividir_video(url_video, base_name, session_id):
                     "-map", "a",
                     output_mp3
                 ]
-                
+
                 ejecutar_ffmpeg_con_timeout(comando_mp3, timeout=300)
-                
+
                 if not os.path.exists(output_mp3):
                     raise Exception(f"No se pudo crear el audio del clip {i+1}")
-                
+
                 audio_size = os.path.getsize(output_mp3)
                 print(f"Audio MP3 creado: {audio_size / (1024*1024):.2f} MB")
-                
+
                 resultados.append({
                     "n": i + 1,
                     "nombre": output_name,
@@ -192,14 +197,14 @@ def dividir_video(url_video, base_name, session_id):
                     "tamaño_mp3": 0,
                     "error": str(e)
                 })
-        
+
         print(f"\n✅ Procesamiento completado: {len(resultados)} clips procesados")
         return resultados
-        
+
     except Exception as e:
         print(f"❌ Error en dividir_video: {str(e)}")
         raise
-        
+
     finally:
         if os.path.exists(local_filename):
             try:
@@ -207,7 +212,6 @@ def dividir_video(url_video, base_name, session_id):
                 print("Archivo original eliminado")
             except:
                 print("No se pudo eliminar el archivo original")
-
 def limpiar_archivos_temporales(clips_info):
     """
     Limpia los archivos temporales después de subirlos
