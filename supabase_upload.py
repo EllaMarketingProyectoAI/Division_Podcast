@@ -16,6 +16,10 @@ def subir_a_supabase_streaming(file_path, bucket_path, mime_type, chunk_size=819
     """
     bucket_name = "videospodcast"
     
+    if not file_path or not os.path.exists(file_path):
+        print(f"Archivo no encontrado o ruta inválida: {file_path}")
+        return None
+    
     try:
         # Obtener el tamaño del archivo
         file_size = os.path.getsize(file_path)
@@ -32,8 +36,8 @@ def subir_a_supabase_streaming(file_path, bucket_path, mime_type, chunk_size=819
             supabase.storage.from_(bucket_name).upload(
                 path=bucket_path,
                 file=f,  # Pasar el file object directamente
-                file_options={"content-type": mime_type},
-                upsert=True
+                file_options={"content-type": mime_type}
+                # upsert eliminado
             )
             
             upload_time = time.time() - start_time
@@ -52,13 +56,12 @@ def subir_archivo_grande(file_path, bucket_path, mime_type):
     """
     bucket_name = "videospodcast"
     
-    # URL directa de la API de Supabase Storage
     upload_url = f"{url}/storage/v1/object/{bucket_name}/{bucket_path}"
     
     headers = {
         'Authorization': f'Bearer {key}',
         'Content-Type': mime_type,
-        'x-upsert': 'true'
+        'x-upsert': 'true'  # Puedes quitar este header si da error
     }
     
     try:
@@ -66,8 +69,8 @@ def subir_archivo_grande(file_path, bucket_path, mime_type):
             response = requests.post(
                 upload_url,
                 headers=headers,
-                data=f,  # Streaming upload
-                timeout=300  # 5 minutos de timeout
+                data=f,
+                timeout=300
             )
             
         if response.status_code in [200, 201]:
@@ -89,7 +92,7 @@ def subir_con_requests(file_path, bucket_path, mime_type):
     headers = {
         'Authorization': f'Bearer {key}',
         'Content-Type': mime_type,
-        'x-upsert': 'true'
+        'x-upsert': 'true'  # Puedes quitar este header si da error
     }
     
     with open(file_path, 'rb') as f:
@@ -97,7 +100,7 @@ def subir_con_requests(file_path, bucket_path, mime_type):
             upload_url,
             headers=headers,
             data=f,
-            timeout=180  # 3 minutos
+            timeout=180
         )
     
     if response.status_code in [200, 201]:
@@ -105,6 +108,5 @@ def subir_con_requests(file_path, bucket_path, mime_type):
     else:
         raise Exception(f"Error en subida alternativa: {response.status_code}")
 
-# Función de compatibilidad con tu código existente
 def subir_a_supabase(file_path, bucket_path, mime_type):
     return subir_a_supabase_streaming(file_path, bucket_path, mime_type)
