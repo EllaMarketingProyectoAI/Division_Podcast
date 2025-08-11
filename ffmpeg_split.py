@@ -151,6 +151,10 @@ def dividir_video(url_video, base_name, session_id):
             try:
                 ejecutar_ffmpeg_con_timeout(comando_mp4, timeout=900)
 
+                # DEBUG SOLO PARA EL ÚLTIMO CLIP
+                if i + 1 == partes:
+                    print(f"DEBUG: Último clip, output_mp4: {output_mp4}, existe: {os.path.exists(output_mp4)}, tamaño: {os.path.getsize(output_mp4) if os.path.exists(output_mp4) else 'N/A'}")
+
                 if not os.path.exists(output_mp4):
                     raise Exception(f"No se pudo crear el clip {i+1}")
 
@@ -165,6 +169,10 @@ def dividir_video(url_video, base_name, session_id):
                 ]
 
                 ejecutar_ffmpeg_con_timeout(comando_mp3, timeout=300)
+
+                # DEBUG SOLO PARA EL ÚLTIMO CLIP (audio)
+                if i + 1 == partes:
+                    print(f"DEBUG: Último clip, output_mp3: {output_mp3}, existe: {os.path.exists(output_mp3)}, tamaño: {os.path.getsize(output_mp3) if os.path.exists(output_mp3) else 'N/A'}")
 
                 if not os.path.exists(output_mp3):
                     raise Exception(f"No se pudo crear el audio del clip {i+1}")
@@ -182,6 +190,8 @@ def dividir_video(url_video, base_name, session_id):
                     "error": None
                 })
             except Exception as e:
+                if i + 1 == partes:
+                    print(f"DEBUG: Error procesando el último clip: {str(e)}")
                 resultados.append({
                     "n": i + 1,
                     "nombre": output_name,
