@@ -3,6 +3,7 @@ import requests
 import uuid
 import subprocess
 from supabase_upload import subir_a_supabase
+import json
 import math
 from moviepy.video.io.VideoFileClip import VideoFileClip
 import time
