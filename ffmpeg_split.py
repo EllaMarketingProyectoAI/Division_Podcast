@@ -123,35 +123,37 @@ def dividir_video(url_video, base_name, session_id):
             if clip_duration <= 0:
                 print(f"Clip {i+1} tiene duración no válida ({clip_duration}s), se omite")
                 continue
-
+        
+            end_time = start + clip_duration
+        
             output_name = f"{base_name.replace('.mp4', '')}_clip{i+1}.mp4"
             output_mp4 = os.path.join(tmp_folder, output_name)
             output_mp3 = output_mp4.replace(".mp4", ".mp3")
-
+        
             print(f"\nProcesando clip {i+1}/{partes} (inicio: {start}s, duración: {clip_duration}s)")
-
+        
             comando_mp4 = [
                 "ffmpeg", "-y",
                 "-ss", str(start),
                 "-i", local_filename,
-                "-t", str(clip_duration),
+                "-to", str(end_time),
                 "-c:v", "libx264",
                 "-preset", "ultrafast",
                 "-crf", "28",
                 "-c:a", "aac",
                 output_mp4
             ]
-
+        
             try:
                 print(f"Ejecutando: {' '.join(comando_mp4)}")
                 ejecutar_ffmpeg_con_timeout(comando_mp4, timeout=900)
-
+        
                 if not os.path.exists(output_mp4):
                     raise Exception(f"No se pudo crear el clip {i+1}")
-
+        
                 clip_size = os.path.getsize(output_mp4)
                 print(f"Clip MP4 creado: {clip_size / (1024*1024):.2f} MB")
-
+        
                 comando_mp3 = [
                     "ffmpeg", "-y",
                     "-i", output_mp4,
@@ -159,15 +161,15 @@ def dividir_video(url_video, base_name, session_id):
                     "-map", "a",
                     output_mp3
                 ]
-
+        
                 ejecutar_ffmpeg_con_timeout(comando_mp3, timeout=300)
-
+        
                 if not os.path.exists(output_mp3):
                     raise Exception(f"No se pudo crear el audio del clip {i+1}")
-
+        
                 audio_size = os.path.getsize(output_mp3)
                 print(f"Audio MP3 creado: {audio_size / (1024*1024):.2f} MB")
-
+        
                 resultados.append({
                     "n": i + 1,
                     "nombre": output_name,
@@ -190,7 +192,6 @@ def dividir_video(url_video, base_name, session_id):
                     "tamaño_mp3": 0,
                     "error": str(e)
                 })
-
         print(f"\n✅ Procesamiento completado: {len(resultados)} clips procesados")
         return resultados
 
