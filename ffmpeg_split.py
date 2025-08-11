@@ -88,14 +88,21 @@ def ejecutar_ffmpeg_con_timeout(comando, timeout=600):
         print(f"Error en FFmpeg: {str(e)}")
         raise
 
-def obtener_duracion_ffprobe(ruta_video):
+def obtener_duracion_video_ffprobe(ruta_video):
     comando = [
-        "ffprobe", "-v", "error", "-show_entries",
-        "format=duration", "-of", "json", ruta_video
+        "ffprobe", "-v", "error", "-select_streams", "v:0",
+        "-show_entries", "stream=duration", "-of", "default=noprint_wrappers=1:nokey=1", ruta_video
     ]
     resultado = subprocess.run(comando, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    info = json.loads(resultado.stdout)
-    return float(info['format']['duration'])
+    return float(resultado.stdout.strip())
+
+def obtener_duracion_audio_ffprobe(ruta_video):
+    comando = [
+        "ffprobe", "-v", "error", "-select_streams", "a:0",
+        "-show_entries", "stream=duration", "-of", "default=noprint_wrappers=1:nokey=1", ruta_video
+    ]
+    resultado = subprocess.run(comando, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    return float(resultado.stdout.strip())
 
 def dividir_video(url_video, base_name, session_id):
     tmp_folder = "/tmp"
@@ -110,13 +117,18 @@ def dividir_video(url_video, base_name, session_id):
         file_size = os.path.getsize(local_filename)
         print(f"Archivo descargado: {file_size / (1024*1024):.2f} MB")
 
-        print("Analizando duración del video...")
+        print("Analizando duración del video y audio...")
         try:
-            duracion = obtener_duracion_ffprobe(local_filename)
-            print(f"Duración real del video (ffprobe): {duracion:.2f} segundos ({duracion/60:.1f} minutos)")
+            duracion_video = obtener_duracion_video_ffprobe(local_filename)
+            duracion_audio = obtener_duracion_audio_ffprobe(local_filename)
+            duracion = min(duracion_video, duracion_audio)
+            print(f"Duración real del video: {duracion_video:.2f} s, audio: {duracion_audio:.2f} s. Usando: {duracion:.2f} s")
+            if not duracion or duracion <= 0:
+                print("[ERROR] No se pudo obtener la duración válida del video/audio.")
+                raise ValueError("No se pudo obtener la duración válida del video/audio.")
         except Exception as e:
-            print(f"Error al obtener la duración con ffprobe: {e}")
-            raise
+            print(f"[ERROR] Error al obtener la duración del video/audio: {e}")
+            raise ValueError(f"Error al obtener la duración del video/audio: {e}")
 
         partes = math.ceil(duracion / 600)
         print(f"Se crearán {partes} clips de máximo 10 minutos cada uno")
