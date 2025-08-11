@@ -131,11 +131,11 @@ def dividir_video(url_video, base_name, session_id):
         for i in range(partes):
             start = i * 600
             clip_duration = min(600, duracion - start)
-            # Redondear y quitar 1 segundo al último clip
+            # Solo para el último clip: trunca a 2 decimales y resta 0.1 segundos
             if i + 1 == partes:
-                clip_duration = int(clip_duration)
-                if clip_duration > 1:
-                    clip_duration -= 1
+                clip_duration = round(clip_duration, 2)
+                if clip_duration > 0.2:
+                    clip_duration -= 0.1
             logger.info(f"DEBUG: i={i}, start={start}, clip_duration={clip_duration}, duracion={duracion}")
             if start >= duracion:
                 continue
@@ -212,6 +212,9 @@ def dividir_video(url_video, base_name, session_id):
                     "tamaño_mp3": 0,
                     "error": str(e)
                 })
+        # Al final, suma la duración de todos los clips generados y compárala con la duración real
+        total_clips_duration = sum([clip['duracion'] for clip in resultados if clip['error'] is None])
+        logger.info(f"DEBUG: Duración total de los clips: {total_clips_duration}, duración real del video: {duracion}")
         return resultados
     except Exception as e:
         raise
