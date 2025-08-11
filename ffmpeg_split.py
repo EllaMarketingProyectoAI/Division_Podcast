@@ -131,6 +131,11 @@ def dividir_video(url_video, base_name, session_id):
         for i in range(partes):
             start = i * 600
             clip_duration = min(600, duracion - start)
+            # Redondear y quitar 1 segundo al último clip
+            if i + 1 == partes:
+                clip_duration = int(clip_duration)
+                if clip_duration > 1:
+                    clip_duration -= 1
             logger.info(f"DEBUG: i={i}, start={start}, clip_duration={clip_duration}, duracion={duracion}")
             if start >= duracion:
                 continue
