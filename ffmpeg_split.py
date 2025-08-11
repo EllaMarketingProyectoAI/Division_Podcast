@@ -71,6 +71,7 @@ def ejecutar_ffmpeg_con_timeout(comando, timeout=600):
             stdout, stderr = process.communicate(timeout=timeout)
 
             if process.returncode != 0:
+                print(f"FFmpeg stderr: {stderr}")
                 raise subprocess.CalledProcessError(process.returncode, comando, stderr)
 
             execution_time = time.time() - start_time
@@ -86,6 +87,15 @@ def ejecutar_ffmpeg_con_timeout(comando, timeout=600):
         print(f"Error en FFmpeg: {str(e)}")
         raise
 
+def obtener_duracion_ffprobe(ruta_video):
+    comando = [
+        "ffprobe", "-v", "error", "-show_entries",
+        "format=duration", "-of", "json", ruta_video
+    ]
+    resultado = subprocess.run(comando, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    info = json.loads(resultado.stdout)
+    return float(info['format']['duration'])
+
 def dividir_video(url_video, base_name, session_id):
     tmp_folder = "/tmp"
     local_filename = os.path.join(tmp_folder, f"{session_id}.mp4")
@@ -100,14 +110,12 @@ def dividir_video(url_video, base_name, session_id):
         print(f"Archivo descargado: {file_size / (1024*1024):.2f} MB")
 
         print("Analizando duración del video...")
-        video = None
         try:
-            video = VideoFileClip(local_filename)
-            duracion = video.duration  # sin floor ni resta
-            print(f"Duración real del video: {duracion:.2f} segundos ({duracion/60:.1f} minutos)")
-        finally:
-            if video:
-                video.close()
+            duracion = obtener_duracion_ffprobe(local_filename)
+            print(f"Duración real del video (ffprobe): {duracion:.2f} segundos ({duracion/60:.1f} minutos)")
+        except Exception as e:
+            print(f"Error al obtener la duración con ffprobe: {e}")
+            raise
 
         partes = math.ceil(duracion / 600)
         print(f"Se crearán {partes} clips de máximo 10 minutos cada uno")
@@ -116,6 +124,9 @@ def dividir_video(url_video, base_name, session_id):
 
         for i in range(partes):
             start = i * 600
+            if start >= duracion:
+                print(f"El inicio del clip {i+1} ({start}s) está fuera de la duración real ({duracion}s), se omite")
+                continue
             clip_duration = min(600, duracion - start)
             print(f"\nProcesando clip {i+1}/{partes} (inicio: {start}s, duración: {clip_duration}s)")
             if clip_duration <= 0:
