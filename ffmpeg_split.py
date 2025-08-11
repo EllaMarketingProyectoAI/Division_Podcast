@@ -119,12 +119,7 @@ def dividir_video(url_video, base_name, session_id):
 
         for i in range(partes):
             start = i * 600
-            if i == partes - 1:
-                clip_duration = duracion - start
-            else:
-                clip_duration = 600 - 2  # restar 2 segundos para evitar problemas
-
-            clip_duration = min(clip_duration, duracion - start)
+            clip_duration = min(600, duracion - start)
             if clip_duration <= 0:
                 print(f"Clip {i+1} tiene duración no válida ({clip_duration}s), se omite")
                 continue
@@ -210,6 +205,7 @@ def dividir_video(url_video, base_name, session_id):
                 print("Archivo original eliminado")
             except:
                 print("No se pudo eliminar el archivo original")
+
 def limpiar_archivos_temporales(clips_info):
     """
     Limpia los archivos temporales después de subirlos
