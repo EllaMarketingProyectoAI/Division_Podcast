@@ -58,7 +58,6 @@ def ejecutar_ffmpeg_con_timeout(comando, timeout=600):
     Ejecuta comando ffmpeg con timeout
     """
     try:
-        print(f"Ejecutando: {' '.join(comando)}")
         start_time = time.time()
 
         process = subprocess.Popen(
@@ -72,23 +71,16 @@ def ejecutar_ffmpeg_con_timeout(comando, timeout=600):
             stdout, stderr = process.communicate(timeout=timeout)
 
             if process.returncode != 0:
-                # Solo imprime las primeras 5 líneas del error
-                error_lines = stderr.splitlines()[:5]
-                print(f"FFmpeg stderr (primeras 5 líneas):\n" + "\n".join(error_lines))
                 raise subprocess.CalledProcessError(process.returncode, comando, stderr)
 
-            execution_time = time.time() - start_time
-            print(f"FFmpeg completado en {execution_time:.2f} segundos")
             return True
 
         except subprocess.TimeoutExpired:
             process.kill()
             process.communicate()
-            print(f"[ERROR] FFmpeg timeout después de {timeout} segundos")
             raise TimeoutError(f"FFmpeg timeout después de {timeout} segundos")
 
     except Exception as e:
-        print(f"Error en FFmpeg: {str(e)}")
         raise
 
 def obtener_duracion_video_ffprobe(ruta_video):
@@ -118,41 +110,31 @@ def dividir_video(url_video, base_name, session_id):
             raise Exception("El archivo no se descargó correctamente")
 
         file_size = os.path.getsize(local_filename)
-        print(f"Archivo descargado: {file_size / (1024*1024):.2f} MB")
 
-        print("Analizando duración del video y audio...")
         try:
             duracion_video = obtener_duracion_video_ffprobe(local_filename)
             duracion_audio = obtener_duracion_audio_ffprobe(local_filename)
             duracion = min(duracion_video, duracion_audio)
-            print(f"Duración real del video: {duracion_video:.2f} s, audio: {duracion_audio:.2f} s. Usando: {duracion:.2f} s")
             if not duracion or duracion <= 0:
-                print("[ERROR] No se pudo obtener la duración válida del video/audio.")
                 raise ValueError("No se pudo obtener la duración válida del video/audio.")
         except Exception as e:
-            print(f"[ERROR] Error al obtener la duración del video/audio: {e}")
             raise ValueError(f"Error al obtener la duración del video/audio: {e}")
 
         partes = math.ceil(duracion / 600)
-        print(f"Se crearán {partes} clips de máximo 10 minutos cada uno")
 
         resultados = []
 
         for i in range(partes):
             start = i * 600
             if start >= duracion:
-                print(f"El inicio del clip {i+1} ({start}s) está fuera de la duración real ({duracion}s), se omite")
                 continue
             clip_duration = min(600, duracion - start)
             if clip_duration <= 0:
-                print(f"Clip {i+1} tiene duración no válida ({clip_duration}s), se omite")
                 continue
 
             output_name = f"{base_name.replace('.mp4', '')}_clip{i+1}.mp4"
             output_mp4 = os.path.join(tmp_folder, output_name)
             output_mp3 = output_mp4.replace(".mp4", ".mp3")
-
-            print(f"[LOG] Procesando clip {i+1}/{partes} (inicio: {start}s, duración: {clip_duration}s)")
 
             comando_mp4 = [
                 "ffmpeg", "-y",
@@ -170,11 +152,9 @@ def dividir_video(url_video, base_name, session_id):
                 ejecutar_ffmpeg_con_timeout(comando_mp4, timeout=900)
 
                 if not os.path.exists(output_mp4):
-                    print(f"[ERROR] No se pudo crear el clip {i+1}")
                     raise Exception(f"No se pudo crear el clip {i+1}")
 
                 clip_size = os.path.getsize(output_mp4)
-                print(f"[LOG] Clip MP4 creado: {clip_size / (1024*1024):.2f} MB")
 
                 comando_mp3 = [
                     "ffmpeg", "-y",
@@ -187,11 +167,9 @@ def dividir_video(url_video, base_name, session_id):
                 ejecutar_ffmpeg_con_timeout(comando_mp3, timeout=300)
 
                 if not os.path.exists(output_mp3):
-                    print(f"[ERROR] No se pudo crear el audio del clip {i+1}")
                     raise Exception(f"No se pudo crear el audio del clip {i+1}")
 
                 audio_size = os.path.getsize(output_mp3)
-                print(f"[LOG] Audio MP3 creado: {audio_size / (1024*1024):.2f} MB")
 
                 resultados.append({
                     "n": i + 1,
@@ -204,7 +182,6 @@ def dividir_video(url_video, base_name, session_id):
                     "error": None
                 })
             except Exception as e:
-                print(f"❌ Error procesando clip {i+1}: {str(e)}")
                 resultados.append({
                     "n": i + 1,
                     "nombre": output_name,
@@ -216,20 +193,17 @@ def dividir_video(url_video, base_name, session_id):
                     "error": str(e)
                 })
 
-        print(f"\n✅ Procesamiento completado: {len(resultados)} clips procesados")
         return resultados
 
     except Exception as e:
-        print(f"❌ Error en dividir_video: {str(e)}")
         raise
 
     finally:
         if os.path.exists(local_filename):
             try:
                 os.remove(local_filename)
-                print("Archivo original eliminado")
             except:
-                print("No se pudo eliminar el archivo original")
+                pass
 
 def limpiar_archivos_temporales(clips_info):
     """
