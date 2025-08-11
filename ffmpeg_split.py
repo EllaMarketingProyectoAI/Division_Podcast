@@ -131,11 +131,6 @@ def dividir_video(url_video, base_name, session_id):
         for i in range(partes):
             start = i * 600
             clip_duration = min(600, duracion - start)
-            # Solo para el último clip: trunca a 2 decimales y resta 0.1 segundos
-            if i + 1 == partes:
-                clip_duration = round(clip_duration, 2)
-                if clip_duration > 0.2:
-                    clip_duration -= 0.1
             logger.info(f"DEBUG: i={i}, start={start}, clip_duration={clip_duration}, duracion={duracion}")
             if start >= duracion:
                 continue
@@ -146,49 +141,83 @@ def dividir_video(url_video, base_name, session_id):
             output_mp4 = os.path.join(tmp_folder, output_name)
             output_mp3 = output_mp4.replace(".mp4", ".mp3")
 
-            comando_mp4 = [
-                "ffmpeg", "-y",
-                "-ss", str(start),
-                "-i", local_filename,
-                "-t", str(clip_duration),
-                "-c:v", "libx264",
-                "-preset", "ultrafast",
-                "-crf", "28",
-                "-c:a", "aac",
-                output_mp4
-            ]
+            def cortar_clip_ffmpeg(comando_mp4, timeout=900):
+                try:
+                    ejecutar_ffmpeg_con_timeout(comando_mp4, timeout=timeout)
+                    return True
+                except Exception as e:
+                    logger.info(f"DEBUG: Error ffmpeg: {str(e)}")
+                    return False
 
-            try:
-                logger.info(f"DEBUG: Ejecutando ffmpeg para clip {i+1}")
-                ejecutar_ffmpeg_con_timeout(comando_mp4, timeout=900)
-
-                if i + 1 == partes:
-                    logger.info(f"DEBUG: Último clip, output_mp4: {output_mp4}, existe: {os.path.exists(output_mp4)}, tamaño: {os.path.getsize(output_mp4) if os.path.exists(output_mp4) else 'N/A'}")
-
-                if not os.path.exists(output_mp4):
-                    raise Exception(f"No se pudo crear el clip {i+1}")
-
-                clip_size = os.path.getsize(output_mp4)
-
-                comando_mp3 = [
+            exito = False
+            dur = clip_duration
+            intentos = 0
+            max_intentos = 5
+            if i + 1 == partes:
+                # Reintenta el último clip si falla
+                while not exito and dur > 1 and intentos < max_intentos:
+                    comando_mp4 = [
+                        "ffmpeg", "-y",
+                        "-ss", str(start),
+                        "-i", local_filename,
+                        "-t", str(dur),
+                        "-c:v", "libx264",
+                        "-preset", "ultrafast",
+                        "-crf", "28",
+                        "-c:a", "aac",
+                        output_mp4
+                    ]
+                    logger.info(f"DEBUG: Intento {intentos+1} para el último clip con duración {dur}")
+                    exito = cortar_clip_ffmpeg(comando_mp4, timeout=900)
+                    if not exito:
+                        dur -= 1
+                        intentos += 1
+                clip_duration = dur
+            else:
+                comando_mp4 = [
                     "ffmpeg", "-y",
-                    "-i", output_mp4,
-                    "-q:a", "2",
-                    "-map", "a",
-                    output_mp3
+                    "-ss", str(start),
+                    "-i", local_filename,
+                    "-t", str(clip_duration),
+                    "-c:v", "libx264",
+                    "-preset", "ultrafast",
+                    "-crf", "28",
+                    "-c:a", "aac",
+                    output_mp4
                 ]
+                exito = cortar_clip_ffmpeg(comando_mp4, timeout=900)
 
-                logger.info(f"DEBUG: Ejecutando ffmpeg para audio clip {i+1}")
+            if not exito or not os.path.exists(output_mp4):
+                if i + 1 == partes:
+                    logger.info(f"DEBUG: Error procesando el último clip tras reintentos")
+                resultados.append({
+                    "n": i + 1,
+                    "nombre": output_name,
+                    "ruta_mp4": None,
+                    "ruta_mp3": None,
+                    "duracion": clip_duration,
+                    "tamaño_mb4": 0,
+                    "tamaño_mp3": 0,
+                    "error": "No se pudo crear el clip tras reintentos"
+                })
+                continue
+
+            clip_size = os.path.getsize(output_mp4)
+
+            comando_mp3 = [
+                "ffmpeg", "-y",
+                "-i", output_mp4,
+                "-q:a", "2",
+                "-map", "a",
+                output_mp3
+            ]
+            try:
                 ejecutar_ffmpeg_con_timeout(comando_mp3, timeout=300)
-
                 if i + 1 == partes:
                     logger.info(f"DEBUG: Último clip, output_mp3: {output_mp3}, existe: {os.path.exists(output_mp3)}, tamaño: {os.path.getsize(output_mp3) if os.path.exists(output_mp3) else 'N/A'}")
-
                 if not os.path.exists(output_mp3):
                     raise Exception(f"No se pudo crear el audio del clip {i+1}")
-
                 audio_size = os.path.getsize(output_mp3)
-
                 resultados.append({
                     "n": i + 1,
                     "nombre": output_name,
@@ -201,14 +230,14 @@ def dividir_video(url_video, base_name, session_id):
                 })
             except Exception as e:
                 if i + 1 == partes:
-                    logger.info(f"DEBUG: Error procesando el último clip: {str(e)}")
+                    logger.info(f"DEBUG: Error procesando el último clip (audio): {str(e)}")
                 resultados.append({
                     "n": i + 1,
                     "nombre": output_name,
-                    "ruta_mp4": None,
+                    "ruta_mp4": output_mp4,
                     "ruta_mp3": None,
                     "duracion": clip_duration,
-                    "tamaño_mb4": 0,
+                    "tamaño_mb4": round(clip_size / (1024*1024), 2),
                     "tamaño_mp3": 0,
                     "error": str(e)
                 })
