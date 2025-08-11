@@ -122,6 +122,7 @@ def dividir_video(url_video, base_name, session_id):
 
         partes = math.ceil(duracion / 600)
         print(f"DEBUG: duracion={duracion}, partes={partes}")
+        resultados = []
         for i in range(partes):
             start = i * 600
             clip_duration = min(600, duracion - start)
