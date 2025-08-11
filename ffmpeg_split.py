@@ -121,14 +121,13 @@ def dividir_video(url_video, base_name, session_id):
             raise ValueError(f"Error al obtener la duración del video/audio: {e}")
 
         partes = math.ceil(duracion / 600)
-
-        resultados = []
-
+        print(f"DEBUG: duracion={duracion}, partes={partes}")
         for i in range(partes):
             start = i * 600
+            clip_duration = min(600, duracion - start)
+            print(f"DEBUG: i={i}, start={start}, clip_duration={clip_duration}, duracion={duracion}")
             if start >= duracion:
                 continue
-            clip_duration = min(600, duracion - start)
             if clip_duration <= 0:
                 continue
 
