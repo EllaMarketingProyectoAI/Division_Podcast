@@ -11,79 +11,64 @@ import signal
 class TimeoutError(Exception):
     pass
 
-def timeout_handler(signum, frame):
-    raise TimeoutError("Operación cancelada por timeout")
-
-def descargar_con_progreso(url_video, local_filename, timeout=300):
-    """
-    Descarga el archivo con timeout y progreso
-    """
-    try:
-        print(f"Descargando video desde: {url_video}")
-        start_time = time.time()
-        
-        response = requests.get(url_video, stream=True, timeout=30)
-        response.raise_for_status()
-        
-        total_size = int(response.headers.get('content-length', 0))
-        downloaded = 0
-        
-        with open(local_filename, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
-                    downloaded += len(chunk)
-                    
-                    if downloaded % (10 * 1024 * 1024) == 0:
-                        if total_size > 0:
-                            progress = (downloaded / total_size) * 100
-                            print(f"Descargado: {progress:.1f}% ({downloaded / (1024*1024):.1f}MB)")
-                        
-                    if time.time() - start_time > timeout:
-                        raise TimeoutError("Timeout en descarga")
-        
-        download_time = time.time() - start_time
-        print(f"Descarga completada en {download_time:.2f} segundos")
-        return True
-        
-    except Exception as e:
-        print(f"Error en descarga: {str(e)}")
-        if os.path.exists(local_filename):
-            os.remove(local_filename)
-        raise
+def obtener_duracion_ffprobe(ruta_video):
+    comando = [
+        "ffprobe", "-v", "error",
+        "-show_entries", "format=duration",
+        "-of", "default=noprint_wrappers=1:nokey=1",
+        ruta_video
+    ]
+    resultado = subprocess.run(comando, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if resultado.returncode != 0:
+        raise Exception(f"Error obteniendo duración con ffprobe: {resultado.stderr}")
+    return float(resultado.stdout.strip())
 
 def ejecutar_ffmpeg_con_timeout(comando, timeout=600):
-    """
-    Ejecuta comando ffmpeg con timeout
-    """
     try:
         print(f"Ejecutando: {' '.join(comando)}")
-        start_time = time.time()
-        
         process = subprocess.Popen(
             comando,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
         )
-        
-        try:
-            stdout, stderr = process.communicate(timeout=timeout)
-            
-            if process.returncode != 0:
-                raise subprocess.CalledProcessError(process.returncode, comando, stderr)
-                
-            execution_time = time.time() - start_time
-            print(f"FFmpeg completado en {execution_time:.2f} segundos")
-            return True
-            
-        except subprocess.TimeoutExpired:
-            process.kill()
-            process.communicate()
-            raise TimeoutError(f"FFmpeg timeout después de {timeout} segundos")
-            
+        stdout, stderr = process.communicate(timeout=timeout)
+        if process.returncode != 0:
+            raise subprocess.CalledProcessError(process.returncode, comando, stderr)
+        return True
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.communicate()
+        raise TimeoutError(f"FFmpeg timeout después de {timeout} segundos")
     except Exception as e:
-        print(f"Error en FFmpeg: {str(e)}")
+        raise e
+
+def descargar_con_progreso(url_video, local_filename, timeout=300):
+    try:
+        print(f"Descargando video desde: {url_video}")
+        start_time = time.time()
+        response = requests.get(url_video, stream=True, timeout=30)
+        response.raise_for_status()
+        total_size = int(response.headers.get('content-length', 0))
+        downloaded = 0
+        with open(local_filename, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+                    downloaded += len(chunk)
+                    if downloaded % (10 * 1024 * 1024) == 0:
+                        if total_size > 0:
+                            progress = (downloaded / total_size) * 100
+                            print(f"Descargado: {progress:.1f}% ({downloaded / (1024*1024):.1f}MB)")
+                    if time.time() - start_time > timeout:
+                        raise TimeoutError("Timeout en descarga")
+        download_time = time.time() - start_time
+        print(f"Descarga completada en {download_time:.2f} segundos")
+        return True
+    except Exception as e:
+        print(f"Error en descarga: {str(e)}")
+        if os.path.exists(local_filename):
+            os.remove(local_filename)
         raise
 
 def dividir_video(url_video, base_name, session_id):
@@ -99,17 +84,11 @@ def dividir_video(url_video, base_name, session_id):
         file_size = os.path.getsize(local_filename)
         print(f"Archivo descargado: {file_size / (1024*1024):.2f} MB")
 
-        print("Analizando duración del video...")
-        video = None
-        try:
-            video = VideoFileClip(local_filename)
-            duracion = math.floor(video.duration) - 1  # Restar 1 segundo para evitar errores
-            if duracion < 0:
-                duracion = 0
-            print(f"Duración del video ajustada: {duracion} segundos ({duracion/60:.1f} minutos)")
-        finally:
-            if video:
-                video.close()
+        duracion = obtener_duracion_ffprobe(local_filename)
+        duracion = math.floor(duracion) - 1  # Restar 1 segundo para seguridad
+        if duracion < 0:
+            duracion = 0
+        print(f"Duración del video (ffprobe): {duracion} segundos")
 
         partes = duracion // 600 + (1 if duracion % 600 > 0 else 0)
         print(f"Se crearán {partes} clips de máximo 10 minutos cada uno")
@@ -120,14 +99,12 @@ def dividir_video(url_video, base_name, session_id):
             start = i * 600
             remaining = duracion - start
             if remaining <= 0:
-                print(f"Clip {i+1} tiene duración no válida ({remaining}s), se omite")
+                print(f"Clip {i+1} duración inválida ({remaining}s), se omite")
                 continue
 
             clip_duration = min(600, remaining)
-
-            # Ajuste extra para evitar errores en el último clip
             if i == partes - 1 and clip_duration > 1:
-                clip_duration -= 1  # Restar 1 segundo al último clip
+                clip_duration -= 1  # Ajuste último clip
 
             output_name = f"{base_name.replace('.mp4', '')}_clip{i+1}.mp4"
             output_mp4 = os.path.join(tmp_folder, output_name)
@@ -149,51 +126,47 @@ def dividir_video(url_video, base_name, session_id):
 
             try:
                 ejecutar_ffmpeg_con_timeout(comando_mp4, timeout=900)
-
-                if not os.path.exists(output_mp4):
-                    raise Exception(f"No se pudo crear el clip {i+1}")
-
-                clip_size = os.path.getsize(output_mp4)
-                print(f"Clip MP4 creado: {clip_size / (1024*1024):.2f} MB")
-
-                comando_mp3 = [
-                    "ffmpeg", "-y",
-                    "-i", output_mp4,
-                    "-q:a", "2",
-                    "-map", "a",
-                    output_mp3
-                ]
-
-                ejecutar_ffmpeg_con_timeout(comando_mp3, timeout=300)
-
-                if not os.path.exists(output_mp3):
-                    raise Exception(f"No se pudo crear el audio del clip {i+1}")
-
-                audio_size = os.path.getsize(output_mp3)
-                print(f"Audio MP3 creado: {audio_size / (1024*1024):.2f} MB")
-
-                resultados.append({
-                    "n": i + 1,
-                    "nombre": output_name,
-                    "ruta_mp4": output_mp4,
-                    "ruta_mp3": output_mp3,
-                    "duracion": clip_duration,
-                    "tamaño_mb4": round(clip_size / (1024*1024), 2),
-                    "tamaño_mp3": round(audio_size / (1024*1024), 2),
-                    "error": None
-                })
             except Exception as e:
-                print(f"❌ Error procesando clip {i+1}: {str(e)}")
-                resultados.append({
-                    "n": i + 1,
-                    "nombre": output_name,
-                    "ruta_mp4": None,
-                    "ruta_mp3": None,
-                    "duracion": clip_duration,
-                    "tamaño_mb4": 0,
-                    "tamaño_mp3": 0,
-                    "error": str(e)
-                })
+                print(f"Error en clip {i+1}, intentando con duración menor: {e}")
+                if clip_duration > 2:
+                    clip_duration -= 1
+                    comando_mp4[5] = str(clip_duration)  # actualizar duración
+                    ejecutar_ffmpeg_con_timeout(comando_mp4, timeout=900)
+                else:
+                    raise e
+
+            if not os.path.exists(output_mp4):
+                raise Exception(f"No se pudo crear el clip {i+1}")
+
+            clip_size = os.path.getsize(output_mp4)
+            print(f"Clip MP4 creado: {clip_size / (1024*1024):.2f} MB")
+
+            comando_mp3 = [
+                "ffmpeg", "-y",
+                "-i", output_mp4,
+                "-q:a", "2",
+                "-map", "a",
+                output_mp3
+            ]
+
+            ejecutar_ffmpeg_con_timeout(comando_mp3, timeout=300)
+
+            if not os.path.exists(output_mp3):
+                raise Exception(f"No se pudo crear el audio del clip {i+1}")
+
+            audio_size = os.path.getsize(output_mp3)
+            print(f"Audio MP3 creado: {audio_size / (1024*1024):.2f} MB")
+
+            resultados.append({
+                "n": i + 1,
+                "nombre": output_name,
+                "ruta_mp4": output_mp4,
+                "ruta_mp3": output_mp3,
+                "duracion": clip_duration,
+                "tamaño_mb4": round(clip_size / (1024*1024), 2),
+                "tamaño_mp3": round(audio_size / (1024*1024), 2),
+                "error": None
+            })
 
         print(f"\n✅ Procesamiento completado: {len(resultados)} clips procesados")
         return resultados
@@ -211,9 +184,6 @@ def dividir_video(url_video, base_name, session_id):
                 print("No se pudo eliminar el archivo original")
 
 def limpiar_archivos_temporales(clips_info):
-    """
-    Limpia los archivos temporales después de subirlos
-    """
     for clip in clips_info:
         try:
             if os.path.exists(clip['ruta_mp4']):
@@ -222,5 +192,4 @@ def limpiar_archivos_temporales(clips_info):
                 os.remove(clip['ruta_mp3'])
         except Exception as e:
             print(f"Error limpiando {clip['nombre']}: {str(e)}")
-    
     print("Archivos temporales limpiados")
