@@ -103,8 +103,10 @@ def dividir_video(url_video, base_name, session_id):
         video = None
         try:
             video = VideoFileClip(local_filename)
-            duracion = math.floor(video.duration)
-            print(f"Duración del video: {duracion} segundos ({duracion/60:.1f} minutos)")
+            duracion = math.floor(video.duration) - 1  # Restar 1 segundo para evitar errores
+            if duracion < 0:
+                duracion = 0
+            print(f"Duración del video ajustada: {duracion} segundos ({duracion/60:.1f} minutos)")
         finally:
             if video:
                 video.close()
