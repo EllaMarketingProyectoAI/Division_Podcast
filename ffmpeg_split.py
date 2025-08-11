@@ -8,6 +8,10 @@ import math
 from moviepy.video.io.VideoFileClip import VideoFileClip
 import time
 import signal
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class TimeoutError(Exception):
     pass
@@ -20,7 +24,7 @@ def descargar_con_progreso(url_video, local_filename, timeout=300):
     Descarga el archivo con timeout y progreso
     """
     try:
-        print(f"Descargando video desde: {url_video}")
+        logger.info(f"Descargando video desde: {url_video}")
         start_time = time.time()
 
         response = requests.get(url_video, stream=True, timeout=30)
@@ -38,17 +42,17 @@ def descargar_con_progreso(url_video, local_filename, timeout=300):
                     if downloaded % (10 * 1024 * 1024) == 0:
                         if total_size > 0:
                             progress = (downloaded / total_size) * 100
-                            print(f"Descargado: {progress:.1f}% ({downloaded / (1024*1024):.1f}MB)")
+                            logger.info(f"Descargado: {progress:.1f}% ({downloaded / (1024*1024):.1f}MB)")
 
                     if time.time() - start_time > timeout:
                         raise TimeoutError("Timeout en descarga")
 
         download_time = time.time() - start_time
-        print(f"Descarga completada en {download_time:.2f} segundos")
+        logger.info(f"Descarga completada en {download_time:.2f} segundos")
         return True
 
     except Exception as e:
-        print(f"Error en descarga: {str(e)}")
+        logger.error(f"Error en descarga: {str(e)}")
         if os.path.exists(local_filename):
             os.remove(local_filename)
         raise
@@ -103,6 +107,7 @@ def dividir_video(url_video, base_name, session_id):
     tmp_folder = "/tmp"
     local_filename = os.path.join(tmp_folder, f"{session_id}.mp4")
 
+    logger.info("DEBUG: Entrando a dividir_video")
     try:
         descargar_con_progreso(url_video, local_filename, timeout=600)  # 10 minutos max
 
@@ -115,18 +120,18 @@ def dividir_video(url_video, base_name, session_id):
             duracion_video = obtener_duracion_video_ffprobe(local_filename)
             duracion_audio = obtener_duracion_audio_ffprobe(local_filename)
             duracion = min(duracion_video, duracion_audio)
+            logger.info(f"DEBUG: duracion={duracion}, partes={math.ceil(duracion / 600)}")
             if not duracion or duracion <= 0:
                 raise ValueError("No se pudo obtener la duración válida del video/audio.")
         except Exception as e:
             raise ValueError(f"Error al obtener la duración del video/audio: {e}")
 
         partes = math.ceil(duracion / 600)
-        print(f"DEBUG: duracion={duracion}, partes={partes}")
         resultados = []
         for i in range(partes):
             start = i * 600
             clip_duration = min(600, duracion - start)
-            print(f"DEBUG: i={i}, start={start}, clip_duration={clip_duration}, duracion={duracion}")
+            logger.info(f"DEBUG: i={i}, start={start}, clip_duration={clip_duration}, duracion={duracion}")
             if start >= duracion:
                 continue
             if clip_duration <= 0:
@@ -149,11 +154,11 @@ def dividir_video(url_video, base_name, session_id):
             ]
 
             try:
+                logger.info(f"DEBUG: Ejecutando ffmpeg para clip {i+1}")
                 ejecutar_ffmpeg_con_timeout(comando_mp4, timeout=900)
 
-                # DEBUG SOLO PARA EL ÚLTIMO CLIP
                 if i + 1 == partes:
-                    print(f"DEBUG: Último clip, output_mp4: {output_mp4}, existe: {os.path.exists(output_mp4)}, tamaño: {os.path.getsize(output_mp4) if os.path.exists(output_mp4) else 'N/A'}")
+                    logger.info(f"DEBUG: Último clip, output_mp4: {output_mp4}, existe: {os.path.exists(output_mp4)}, tamaño: {os.path.getsize(output_mp4) if os.path.exists(output_mp4) else 'N/A'}")
 
                 if not os.path.exists(output_mp4):
                     raise Exception(f"No se pudo crear el clip {i+1}")
@@ -168,11 +173,11 @@ def dividir_video(url_video, base_name, session_id):
                     output_mp3
                 ]
 
+                logger.info(f"DEBUG: Ejecutando ffmpeg para audio clip {i+1}")
                 ejecutar_ffmpeg_con_timeout(comando_mp3, timeout=300)
 
-                # DEBUG SOLO PARA EL ÚLTIMO CLIP (audio)
                 if i + 1 == partes:
-                    print(f"DEBUG: Último clip, output_mp3: {output_mp3}, existe: {os.path.exists(output_mp3)}, tamaño: {os.path.getsize(output_mp3) if os.path.exists(output_mp3) else 'N/A'}")
+                    logger.info(f"DEBUG: Último clip, output_mp3: {output_mp3}, existe: {os.path.exists(output_mp3)}, tamaño: {os.path.getsize(output_mp3) if os.path.exists(output_mp3) else 'N/A'}")
 
                 if not os.path.exists(output_mp3):
                     raise Exception(f"No se pudo crear el audio del clip {i+1}")
@@ -191,7 +196,7 @@ def dividir_video(url_video, base_name, session_id):
                 })
             except Exception as e:
                 if i + 1 == partes:
-                    print(f"DEBUG: Error procesando el último clip: {str(e)}")
+                    logger.info(f"DEBUG: Error procesando el último clip: {str(e)}")
                 resultados.append({
                     "n": i + 1,
                     "nombre": output_name,
@@ -202,12 +207,9 @@ def dividir_video(url_video, base_name, session_id):
                     "tamaño_mp3": 0,
                     "error": str(e)
                 })
-
         return resultados
-
     except Exception as e:
         raise
-
     finally:
         if os.path.exists(local_filename):
             try:
@@ -226,6 +228,6 @@ def limpiar_archivos_temporales(clips_info):
             if os.path.exists(clip['ruta_mp3']):
                 os.remove(clip['ruta_mp3'])
         except Exception as e:
-            print(f"Error limpiando {clip['nombre']}: {str(e)}")
+            logger.error(f"Error limpiando {clip['nombre']}: {str(e)}")
 
-    print("Archivos temporales limpiados")
+    logger.info("Archivos temporales limpiados")
