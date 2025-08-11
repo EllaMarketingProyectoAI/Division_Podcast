@@ -118,10 +118,16 @@ def dividir_video(url_video, base_name, session_id):
 
         for i in range(partes):
             start = i * 600
-            clip_duration = min(600, duracion - start)
-            if clip_duration <= 0:
-                print(f"Clip {i+1} tiene duración no válida ({clip_duration}s), se omite")
+            remaining = duracion - start
+            if remaining <= 0:
+                print(f"Clip {i+1} tiene duración no válida ({remaining}s), se omite")
                 continue
+
+            clip_duration = min(600, remaining)
+
+            # Ajuste extra para evitar errores en el último clip
+            if i == partes - 1 and clip_duration > 1:
+                clip_duration -= 1  # Restar 1 segundo al último clip
 
             output_name = f"{base_name.replace('.mp4', '')}_clip{i+1}.mp4"
             output_mp4 = os.path.join(tmp_folder, output_name)
