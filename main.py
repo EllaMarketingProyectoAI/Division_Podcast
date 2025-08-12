@@ -34,12 +34,12 @@ def dividir_podcast():
         for clip in clips_info:
             url_video_supabase = subir_a_supabase(
                 clip['ruta_mp4'], 
-                f"videospodcast/PodcastCortados/{clip['nombre']}", 
+                f"PodcastCortados/{clip['nombre']}", 
                 "video/mp4"
             )
             url_audio_supabase = subir_a_supabase(
                 clip['ruta_mp3'], 
-                f"videospodcast/PodcastCortadosAudio/{clip['nombre'].replace('.mp4', '.mp3')}", 
+                f"PodcastCortadosAudio/{clip['nombre'].replace('.mp4', '.mp3')}", 
                 "audio/mpeg"
             )
             resultados.append({
